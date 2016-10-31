@@ -4,3 +4,7 @@ Files:
 
 'model.R': two-compartment PK model for multiple infusion dosing
 'Bayes.R': Bayesian framework and plotting prior/posterior summaries
+
+Resource:
+
+http://jrowen.github.io/rhandsontable/
