@@ -66,7 +66,7 @@ log_posterior <- function(lpr, ivt, dat) {
 
 ## suppose that a patient received the default dosing pattern
 ## and has the following concentration measurements at time 1h
-dat <- data.frame(time_h = c(1,4), conc_mg_dl = c(82.7,80.4))
+dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
 #dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
 #dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
 #dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
@@ -125,35 +125,54 @@ fdGrad <- function (pars, fun, ...,
   })
 }
 
-## Compute gradient of log concentration-time curve with
-## respect to PK parameters, at their posterior estimated values
-grd <- fdGrad(est$par, function(pars) {
-  tms <- seq(1e-3, 8, 0.1)
-  sol <- pk_solution(v_1=exp(pars[1]), k_10=exp(pars[2]))
-  log(sol(tms)[1,]*1000) ## mulitply by 1000: g/l -> ug/ml
-})
+## Plot posterior estimated concentration-time curve with approximate
+## Wald-type posterior (1-alp)*100% credible bands
+## est - object returned from 'optim' with 'hessian=TRUE'
+## ivt - 
+## dat - 
+plot_post_conc <- function(est, ivt, dat, alp=0.05) {
+  ## Compute gradient of log concentration-time curve with
+  ## respect to PK parameters, at their posterior estimated values
+  tmx <- max(sapply(ivt, function(x) x$end), na.rm=TRUE) + 12
+  tms <- seq(1e-3, tmx, 0.1)
 
-## Approximate standard deviation of log concentration-time curve
-sde <- sqrt(diag(grd %*% solve(-est$hessian) %*% t(grd)))
-sde <- ifelse(is.nan(sde), 0, sde)
+  ## Approximate standard deviation of log concentration-time curve
+  grd <- fdGrad(est$par, function(pars) {
+    sol <- pk_solution(v_1=exp(pars[1]), k_10=exp(pars[2]), ivt=ivt) 
+    log(sol(tms)[1,]*1000) ## mulitply by 1000: g/l -> ug/ml
+  })
+  sde <- sqrt(diag(grd %*% solve(-est$hessian) %*% t(grd)))
+  sde <- ifelse(is.nan(sde), 0, sde)
+  
+  ## Plot posterior estiamte
+  sol <- pk_solution(v_1=exp(est$par[1]), k_10=exp(est$par[2]), ivt=ivt) 
+  con <- apply(sol(tms)*1000, 2, function(x) pmax(0,x))
+  par(mfrow=c(1,1))
+  plot(tms, con[1,], xlab="Time (h)", ylab="Central Concentration (mg/dL)",
+       ylim=c(0, max(exp(log(con[1,])+qnorm(1-alp/2)*sde), na.rm=TRUE)),
+       type='l', lwd=2, col="#882255", main="Concentration vs. Time")
 
-## Plot posterior estimate for concentration-time curve with pointwise
-## Wald-type 95% credible bands
-tms <- seq(1e-3, 8, 0.1)
-sol_posterior <- pk_solution(k_10=exp(est$par['lk_10']),
-                             v_1=exp(est$par['lv_1']))
-con_posterior <- apply(sol_posterior(tms)*1000, 2, function(x) pmax(0,x))
-par(mfrow=c(1,1))
-plot(tms, con_posterior[1,], xlab="Time (h)",
-     ylab="Central Concentration (mg/dL)",
-     ylim=c(0, max(exp(log(con_posterior[1,])+1.96*sde), na.rm=TRUE)),
-     type='l', lwd=2, col="#882255",
-     main="Concentration vs. Time")
-points(dat$time_h, dat$conc_mg_dl, pch=16)
-polygon(c(tms,rev(tms)), 
-        c(exp(log(con_posterior[1,]) + 1.96*sde),
-          rev(exp(log(con_posterior[1,]) - 1.96*sde))),
-        col="#CC667755", border=NA)
+  ## Plot measured points
+  points(dat$time_h, dat$conc_mg_dl, pch=16)
+  
+  ## Plot 95% credible bands
+  polygon(c(tms,rev(tms)), 
+          c(exp(log(con[1,]) + qnorm(1-alp/2)*sde),
+            rev(exp(log(con[1,]) - qnorm(1-alp/2)*sde))),
+          col="#CC667755", border=NA)
+}
+
+
+
+
+
+
+
+
+
+
+
+
 legend('topright', c("Predicted", "95% Credible Band", "Measured"),
        lwd=c(2,4,NA), pch=c(NA,NA,16), col=c('#882255','#CC667755','black'),
        border=NA, bty='n')
