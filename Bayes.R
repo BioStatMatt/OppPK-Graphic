@@ -160,6 +160,11 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05) {
           c(exp(log(con[1,]) + qnorm(1-alp/2)*sde),
             rev(exp(log(con[1,]) - qnorm(1-alp/2)*sde))),
           col="#CC667755", border=NA)
+  
+  ## Create legend
+  legend('topleft', c("Predicted", "95% Credible Band", "Measured"),
+         lwd=c(2,4,NA), pch=c(NA,NA,16), col=c('#882255','#CC667755','black'),
+         border=NA, bty='n')
 }
 
 
@@ -171,14 +176,3 @@ system.time({
   plot_post_conc(est, ivt_d, dat)
 })
 
-
-
-
-
-
-
-
-
-legend('topright', c("Predicted", "95% Credible Band", "Measured"),
-       lwd=c(2,4,NA), pch=c(NA,NA,16), col=c('#882255','#CC667755','black'),
-       border=NA, bty='n')
