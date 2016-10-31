@@ -134,7 +134,7 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05) {
   ## Compute gradient of log concentration-time curve with
   ## respect to PK parameters, at their posterior estimated values
   tmx <- max(sapply(ivt, function(x) x$end), na.rm=TRUE) + 12
-  tms <- seq(1e-3, tmx, 0.1)
+  tms <- seq(1e-3, tmx, 0.1) ## FIXME (need to get peaks and troughs)
 
   ## Approximate standard deviation of log concentration-time curve
   grd <- fdGrad(est$par, function(pars) {
@@ -163,7 +163,13 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05) {
 }
 
 
-
+## Example
+dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
+system.time({
+  est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
+               dat=dat, control = list(fnscale=-1), hessian=TRUE)
+  plot_post_conc(est, ivt_d, dat)
+})
 
 
 
