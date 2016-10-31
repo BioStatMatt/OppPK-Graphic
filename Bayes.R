@@ -12,11 +12,12 @@ lpk_mean_d <- c(lv_1=3.223, lk_10=-1.650)
 lpk_vcov_d <- 300 * matrix(c( 0.00167, -0.00128,
                              -0.00128,  0.00154), 2,2)
 
-## Prior distribution for error variance 
+## Prior distribution for error variance (gamma with shape and scale)
 err_shape_d <- 2
 err_scale_d <- sqrt(754)/2
 err_mean_d  <- err_shape_d * err_scale_d
 
+## Vectof of all three parameters
 lpr_mean_d  <- c(lpk_mean_d, log(err_mean_d)) 
 
 ## Given a series of concentration measurements for a particular patient, 
@@ -25,19 +26,22 @@ lpr_mean_d  <- c(lpk_mean_d, log(err_mean_d))
 ## dose/frequency changes. The function below evaluates the log posterior density
 ## as a function of the two PK parameters (lk_10, lv_1).
 
-## lpr - log parameter vector: c(lk_10=??, lv_1=??)
+## Log prior density
+## lpr - log parameter vector
 ## err - error standard deviation
-## mu  - prior mean c(lk_10=??, lv_1=??)
-## sig - prior variange-covariance (2x2 PD matrix)
+## mu  - prior mean for PK parameters
+## sig - prior variange-covariance for PK parameters (2x2 PD matrix)
+## err_shape - prior shape parameter for error variance
+## err_scale - prior scale parameter for error variance
 log_prior <- function(lpr, mu=lpk_mean_d, sig=lpk_vcov_d,
                       err_shape=err_shape_d, err_scale=err_scale_d)
   dmvnorm(lpr[1:2], mu, sig, log = TRUE) + 
   dgamma(lpr[3], shape=err_shape, scale=err_scale, log=TRUE)
 
-## lpr - log parameter vector: c(lk_10=??, lv_1=??)
+## Log likelihood function
+## lpr - log parameter vector
 ## ivt - list describing sequence of doses
-## dat - concentration data: data.frame(time_h=??, conc_mg_dl=??)
-## err - error standard deviation [mg/dl]
+## dat - concentration data: data.frame(time_h, conc_mg_dl)
 ## ini - initial concentrations
 log_likelihood <- function(lpr, ivt, dat, ini=c(0,0)) {
   epr <- exp(lpr)
@@ -47,9 +51,10 @@ log_likelihood <- function(lpr, ivt, dat, ini=c(0,0)) {
   with(dat, sum(dnorm(conc_mg_dl, pconc_mg_dl, epr[3], log=TRUE)))
 }
 
-## lpr - log parameter vector: c(lk_10=??, lv_1=??, lerr=??)
+## Log posterior density
+## lpr - log parameter vector
 ## ivt  - list describing sequence of doses
-## dat  - concentration data: data.frame(time_h=??, conc_mg_dl=??)
+## dat  - concentration data: data.frame(time_h, conc_mg_dl)
 log_posterior <- function(lpr, ivt, dat) {
   dat <- na.omit(dat)
   if(nrow(dat) < 1) {
@@ -59,36 +64,10 @@ log_posterior <- function(lpr, ivt, dat) {
   }
 }
 
-
-## plot the contours of a univariate function of two variables ('x' and 'y')
-## fun - function with prototype 'function(x, ...) {...}' that outputs a single 
-##       numeric value, and where x is a numeric vector of length 2, i.e., 'c(x,y)'
-## xlm - limits of 'x' variable
-## ylm - limits of 'y' variable
-## pts - number of grid points to evaluate in the 'x' and 'y' directions
-## nrm - normalize the values returned from 'fun'?
-## ... - arguments passed to 'contour'
-contourf <- function(fun, xlm, ylm, pts=c(100,100), nrm=TRUE, ...) {
-  xsq <- seq(xlm[1], xlm[2], length.out=pts[1])
-  ysq <- seq(ylm[1], ylm[2], length.out=pts[2])
-  grd <- expand.grid(x=xsq, y=ysq)
-  val <- apply(grd, 1, fun)
-  if(nrm) { ## normalize
-    ## approximate normalization constant
-    ## using cubature::adaptIntegrate
-    nrm <- adaptIntegrate(fun, 
-      lowerLimit=c(xlm[1],ylm[1]),
-      upperLimit=c(xlm[2],ylm[2]))$integral
-    val <- val/nrm
-  }
-  val <- matrix(val, nrow=pts[1], ncol=pts[2])
-  contour(x=xsq,y=ysq,z=val, ...)
-}
-
 ## suppose that a patient received the default dosing pattern
 ## and has the following concentration measurements at time 1h
-#dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
 dat <- data.frame(time_h = c(1,4), conc_mg_dl = c(82.7,80.4))
+#dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
 #dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
 #dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
 
@@ -97,7 +76,7 @@ dat <- data.frame(time_h = c(1,4), conc_mg_dl = c(82.7,80.4))
 est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
              dat=dat, control = list(fnscale=-1), hessian=TRUE)
 
-## plot prior predictions for the concentration-time curve
+## plot prior and posterior predictions for the concentration-time curve
 par(mfrow=c(1,2))
 tms <- seq(1e-3, 8, 0.1)
 sol_prior <- pk_solution()
@@ -115,8 +94,8 @@ legend('topright', c('Prior', 'Posterior', 'Measured'),
        lty=c(2,1,NA), pch=c(NA, NA, 16), bty='n')
 
 
-## plot contours of the prior distribution for k_10 and v_1
-ell_prior <- ellipse(log_par_vcov_d, centre=lpk_mean_d)
+## plot approximate 95% credible region for prior and posterior for k_10 and v_1
+ell_prior <- ellipse(lpk_vcov_d, centre=lpk_mean_d)
 ## ell_posterior is computed using posterior Laplace approximation
 ell_posterior <- ellipse(solve(-est$hessian), centre=est$par)
 plot(range(c(ell_prior[,1],ell_posterior[,1])),
@@ -129,24 +108,7 @@ lines(ell_posterior, lty=1)
 legend('topright', c('Prior', 'Posterior'),
        lty=c(2,1), bty='n')
 
-## plot contours of the prior/posterior distribution for k_10 and v_1
-# contourf(function(x) exp(log_prior(x)),
-#          xlm, ylm, pts=c(60,60), lty=2,
-#          levels=c(0.05, 0.20, 0.80),
-#          xlab=expression(log~V[1]),
-#          ylab=expression(log~k[10]),
-#          main="Prior Contours")
-
-
-# contourf(function(x) exp(log_posterior(x, ivt, dat)),
-#          xlm, ylm, pts, lty=1,
-#          levels=c(0.05, 0.20, 0.80),
-#          xlab=expression(log~V[1]),
-#          ylab=expression(log~k[10]),
-#          main="Posterior Contours")
-
-
-## compute finite-difference gradient (c.f., nlme::fdHess)
+## Function to compute finite-difference gradient (c.f., nlme::fdHess)
 fdGrad <- function (pars, fun, ...,
                     .relStep = (.Machine$double.eps)^(1/2), 
                     minAbsPar = 0) {
@@ -163,15 +125,20 @@ fdGrad <- function (pars, fun, ...,
   })
 }
 
+## Compute gradient of log concentration-time curve with
+## respect to PK parameters, at their posterior estimated values
 grd <- fdGrad(est$par, function(pars) {
   tms <- seq(1e-3, 8, 0.1)
   sol <- pk_solution(v_1=exp(pars[1]), k_10=exp(pars[2]))
-  log(sol(tms)[1,]*1000) ## g/l -> ug/ml
+  log(sol(tms)[1,]*1000) ## mulitply by 1000: g/l -> ug/ml
 })
 
+## Approximate standard deviation of log concentration-time curve
 sde <- sqrt(diag(grd %*% solve(-est$hessian) %*% t(grd)))
 sde <- ifelse(is.nan(sde), 0, sde)
 
+## Plot posterior estimate for concentration-time curve with pointwise
+## Wald-type 95% credible bands
 tms <- seq(1e-3, 8, 0.1)
 sol_posterior <- pk_solution(k_10=exp(est$par['lk_10']),
                              v_1=exp(est$par['lv_1']))
@@ -190,4 +157,3 @@ polygon(c(tms,rev(tms)),
 legend('topright', c("Predicted", "95% Credible Band", "Measured"),
        lwd=c(2,4,NA), pch=c(NA,NA,16), col=c('#882255','#CC667755','black'),
        border=NA, bty='n')
-
