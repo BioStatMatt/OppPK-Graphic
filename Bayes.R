@@ -150,29 +150,32 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05) {
   par(mfrow=c(1,1))
   plot(tms, con[1,], xlab="Time (h)", ylab="Central Concentration (mg/dL)",
        ylim=c(0, max(exp(log(con[1,])+qnorm(1-alp/2)*sde), na.rm=TRUE)),
-       type='l', lwd=2, col="#882255", main="Concentration vs. Time")
+       type='n', main="Concentration vs. Time")
 
-  ## Plot measured points
-  points(dat$time_h, dat$conc_mg_dl, pch=16)
-  
   ## Plot 95% credible bands
   polygon(c(tms,rev(tms)), 
           c(exp(log(con[1,]) + qnorm(1-alp/2)*sde),
             rev(exp(log(con[1,]) - qnorm(1-alp/2)*sde))),
-          col="#CC667755", border=NA)
+          col="#CC6677", border=NA)
+  
+  ## Plot posterior estimate
+  lines(tms, con[1,], lwd=2, col="#882255")
+  
+  ## Plot measured points
+  points(dat$time_h, dat$conc_mg_dl, pch=16)
   
   ## Create legend
   legend('topleft', c("Predicted", "95% Credible Band", "Measured"),
-         lwd=c(2,4,NA), pch=c(NA,NA,16), col=c('#882255','#CC667755','black'),
+         lwd=c(2,4,NA), pch=c(NA,NA,16), col=c('#882255','#CC6677','black'),
          border=NA, bty='n')
 }
 
 
 ## Example
-dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
-system.time({
-  est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
-               dat=dat, control = list(fnscale=-1), hessian=TRUE)
-  plot_post_conc(est, ivt_d, dat)
-})
+# dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
+# system.time({
+#   est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
+#                dat=dat, control = list(fnscale=-1), hessian=TRUE)
+#   plot_post_conc(est, ivt_d, dat)
+# })
 
