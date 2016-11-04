@@ -2,10 +2,10 @@ This project aims to create and refine a statistical graphic and Shiny app for t
 
 ### Files
 
-'README.md': this README
-'model.R': two-compartment PK model for multiple infusion dosing
-'Bayes.R': Bayesian framework and plotting prior/posterior summaries
-'shiny.R': Shiny application
+- 'README.md': this README
+- 'model.R': two-compartment PK model for multiple infusion dosing
+- 'Bayes.R': Bayesian framework and plotting prior/posterior summaries
+- 'shiny.R': Shiny application
 
 
 ### Resources:
