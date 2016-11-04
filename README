@@ -2,10 +2,16 @@ This project aims to create and refine a statistical graphic and Shiny app for t
 
 Files:
 
+'README':  this README
 'model.R': two-compartment PK model for multiple infusion dosing
 'Bayes.R': Bayesian framework and plotting prior/posterior summaries
 'shiny.R': Shiny application
 
-Resource:
+
+Resources:
 
 http://jrowen.github.io/rhandsontable/
+
+TODO:
+
+- check whether need to marginalize posterior w.r.t. error variance
