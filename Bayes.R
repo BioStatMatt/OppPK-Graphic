@@ -1,7 +1,7 @@
 ## Bayes prediction
 library('mvtnorm')  ## dmvnorm
 library('cubature') ## adaptIntegrate
-library('ellipse')  ## ellipse
+library('ellipse')  ## ellipse (only needed for example)
 source('model.R')
 
 ## Here we assume that a one-compartment model is sufficient, and that 
@@ -64,50 +64,6 @@ log_posterior <- function(lpr, ivt, dat) {
   }
 }
 
-## suppose that a patient received the default dosing pattern
-## and has the following concentration measurements at time 1h
-dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
-#dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
-#dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
-#dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
-
-## then the Bayes estiamte for v_1 and k_10 is the posterior mode, which
-## we can find as follows:
-est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
-             dat=dat, control = list(fnscale=-1), hessian=TRUE)
-
-## plot prior and posterior predictions for the concentration-time curve
-par(mfrow=c(1,2))
-tms <- seq(1e-3, 8, 0.1)
-sol_prior <- pk_solution()
-con_prior <- sol_prior(tms)*1000
-plot(tms, con_prior[1,], xlab="Time (h)",
-     ylab="Central Concentration (mg/dL)",
-     ylim=range(con_prior), type='l', lty=2,
-     main="Concentration vs. Time")
-sol_posterior <- pk_solution(k_10=exp(est$par['lk_10']),
-                             v_1=exp(est$par['lv_1']))
-con_posterior <- sol_posterior(tms)*1000
-lines(tms, con_posterior[1,])
-points(dat$time_h, dat$conc_mg_dl, pch=16)
-legend('topright', c('Prior', 'Posterior', 'Measured'),
-       lty=c(2,1,NA), pch=c(NA, NA, 16), bty='n')
-
-
-## plot approximate 95% credible region for prior and posterior for k_10 and v_1
-ell_prior <- ellipse(lpk_vcov_d, centre=lpk_mean_d)
-## ell_posterior is computed using posterior Laplace approximation
-ell_posterior <- ellipse(solve(-est$hessian), centre=est$par)
-plot(range(c(ell_prior[,1],ell_posterior[,1])),
-     range(c(ell_prior[,2],ell_posterior[,2])), type="n", 
-     xlab=expression(log~V[1]),
-     ylab=expression(log~k[10]),
-     main="95% Credible Region")
-lines(ell_prior, lty=2)
-lines(ell_posterior, lty=1)
-legend('topright', c('Prior', 'Posterior'),
-       lty=c(2,1), bty='n')
-
 ## Function to compute finite-difference gradient (c.f., nlme::fdHess)
 fdGrad <- function (pars, fun, ...,
                     .relStep = (.Machine$double.eps)^(1/2), 
@@ -128,8 +84,8 @@ fdGrad <- function (pars, fun, ...,
 ## Plot posterior estimated concentration-time curve with approximate
 ## Wald-type posterior (1-alp)*100% credible bands
 ## est - object returned from 'optim' with 'hessian=TRUE'
-## ivt - 
-## dat - 
+## ivt  - list describing sequence of doses
+## dat  - concentration data: data.frame(time_h, conc_mg_dl)
 plot_post_conc <- function(est, ivt, dat, alp=0.05) {
   ## Compute gradient of log concentration-time curve with
   ## respect to PK parameters, at their posterior estimated values
@@ -172,10 +128,44 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05) {
 
 
 ## Example
+## suppose that a patient received the default dosing pattern
+## and has the following concentration measurements at time 1h
 # dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
+# # dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
+# # dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
+# # dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
 # system.time({
 #   est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
 #                dat=dat, control = list(fnscale=-1), hessian=TRUE)
 #   plot_post_conc(est, ivt_d, dat)
 # })
 
+## plot prior and posterior predictions for the concentration-time curve
+# par(mfrow=c(1,2))
+# tms <- seq(1e-3, 8, 0.1)
+# sol_prior <- pk_solution()
+# con_prior <- sol_prior(tms)*1000
+# plot(tms, con_prior[1,], xlab="Time (h)",
+#      ylab="Central Concentration (mg/dL)",
+#      ylim=range(con_prior), type='l', lty=2,
+#      main="Concentration vs. Time")
+# sol_posterior <- pk_solution(k_10=exp(est$par['lk_10']),
+#                              v_1=exp(est$par['lv_1']))
+# con_posterior <- sol_posterior(tms)*1000
+# lines(tms, con_posterior[1,])
+# points(dat$time_h, dat$conc_mg_dl, pch=16)
+# legend('topright', c('Prior', 'Posterior', 'Measured'),
+#        lty=c(2,1,NA), pch=c(NA, NA, 16), bty='n')
+
+## plot approximate 95% credible region for prior and posterior for k_10 and v_1
+# ell_prior <- ellipse(lpk_vcov_d, centre=lpk_mean_d)
+# ell_posterior <- ellipse(solve(-est$hessian), centre=est$par) ## Laplace approximation
+# plot(range(c(ell_prior[,1],ell_posterior[,1])),
+#      range(c(ell_prior[,2],ell_posterior[,2])), type="n",
+#      xlab=expression(log~V[1]),
+#      ylab=expression(log~k[10]),
+#      main="95% Credible Region")
+# lines(ell_prior, lty=2)
+# lines(ell_posterior, lty=1)
+# legend('topright', c('Prior', 'Posterior'),
+#        lty=c(2,1), bty='n')
