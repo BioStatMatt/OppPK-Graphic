@@ -84,13 +84,23 @@ fdGrad <- function (pars, fun, ...,
 ## Plot posterior estimated concentration-time curve with approximate
 ## Wald-type posterior (1-alp)*100% credible bands
 ## est - object returned from 'optim' with 'hessian=TRUE'
-## ivt  - list describing sequence of doses
-## dat  - concentration data: data.frame(time_h, conc_mg_dl)
-plot_post_conc <- function(est, ivt, dat, alp=0.05) {
+## ivt - list describing sequence of doses
+## dat - concentration data: data.frame(time_h, conc_mg_dl)
+## alp - credible level (1-alp)%
+## cod - additional time following last dose (h)
+plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12) {
   ## Compute gradient of log concentration-time curve with
   ## respect to PK parameters, at their posterior estimated values
   tmx <- max(sapply(ivt, function(x) x$end), na.rm=TRUE) + 12
-  tms <- seq(1e-3, tmx, 0.1) ## FIXME (need to get peaks and troughs)
+  
+  ## Compute plotting times
+  ## - ensure peak and trough times
+  ## - avoid time zero
+  tms <- sapply(ivt, function(x) c(x$begin, x$end))
+  tms <- c(tms, max(tms)+cod)
+  tms <- unlist(sapply(1:(length(tms)-1),
+    function(i) seq(tms[i], tms[i+1], 1/6)))
+  tms <- pmax(1e-3, tms)
 
   ## Approximate standard deviation of log concentration-time curve
   grd <- fdGrad(est$par, function(pars) {
