@@ -15,18 +15,27 @@ source('Bayes.R')
 ui <- fluidPage(
   
   # Application title
-  titlePanel("Opportunistic Sampling"),
+  titlePanel("OppSampPK"), 
   
   # Sidebar 
   sidebarLayout(
     sidebarPanel(
+      # Consider replacing these with numeric inputs
       # Drop down to select number of available sample measurements
-      selectInput("nMeas", "Number of Measurements", 
-                  choices = 1:10,
-                  selected = 1
-      ),
-      # Will dynamically create time/dose inputs based on number of measurements (in server)
-      uiOutput("measures")
+      selectInput("nMeas", "Number of Sample Measurements",
+                  choices = 0:10,
+                  selected = 0),
+      # Drop down to select number of doses administered
+      selectInput("nDoseAdmin", "Number of Doses Administered", 
+                  choices = 0:10, # I'm not sure what a reasonable upper bound would be here
+                  selected = 0),
+      # Set up area for rhandsontable output
+      helpText("Sample Information"),
+      rHandsontableOutput("sample"),
+      helpText("Dosing Schedule"),
+      rHandsontableOutput("dosing"),
+      # Button for updating plot
+      actionButton("go", "Update Plot")
     ),
     # Show a plot
     # Hide a warning that results from the odd way I'm grabbing the time/dose data from input (in server)
@@ -36,42 +45,82 @@ ui <- fluidPage(
   )
 )
 
+
 # Define server logic required to draw plot
 server <- function(input, output) {
   
-  # Create input boxes given the number of available samples
-  output$measures <- renderUI({
-    times <- lapply(1:input$nMeas, function(i){
-      timeId <- paste0("time", i)
-      timeName <- paste("Time", i, sep = " ")
-      numericInput(timeId, timeName, min = 0, value = 0)
-    })
-    doses <- lapply(1:input$nMeas, function(i){
-      doseId <- paste0("dose", i)
-      doseName <- paste("Dose", i, sep = " ")
-      numericInput(doseId, doseName, min = 0, value = 0)
-    })
-    do.call(tagList, rbind(times, doses))
+  #rhandsontable for sample information
+  sampDat <- reactive({
+    if (is.null(input$hotSamp)) {
+      vec <- numeric(input$nMeas)
+      sampDF = data.frame("Time" = vec, "Concentration" = vec)
+    } else {
+      sampDF = hot_to_r(input$hotSamp)
+    }
+    rhandsontable(sampDF)
   })
   
- 
+  output$sample <- renderRHandsontable({
+    sampDat()
+  })
   
+  
+  #rhandsontable for dosing information
+  doseDat <- reactive({
+    if (is.null(input$hotDose)) {
+      vec <- numeric(input$nDoseAdmin)
+      doseDF = data.frame("Start" = vec, "End" = vec, "Infusion_Rate" = vec)
+    } else {
+      doseDF = hot_to_r(input$hotDose)
+    }
+    rhandsontable(doseDF)
+  })
+  
+  output$dosing <- renderRHandsontable({
+    doseDat()
+  })
+  
+  # These functions allow me to grab the data from rhandsontable to use in plotting
+  sampTable <- eventReactive(input$go, {
+    live_data = hot_to_r(input$sample)
+    return(live_data)
+  })
+  doseTable <- eventReactive(input$go, {
+    live_data = hot_to_r(input$dosing)
+    return(live_data)
+  })
+  
+  
+  
+  # Create the plot
   output$plot <- renderPlot({
-    #There must be a better way to grab only the input$timeX and input$doseX values I need
-    dat <- data.frame(time_h = c(input$time1, input$time2, input$time3, input$time4, input$time5,
-                                 input$time6, input$time7, input$time8, input$time9, input$time10),
-                      conc_mg_dl = c(input$dose1, input$dose2, input$dose3, input$dose4, input$dose5,
-                                     input$dose6, input$dose7, input$dose8, input$dose9, input$dose10))
-
-    #Restrict to actual measurements
-    dat <- dat[1:input$nMeas,]
-    
-    
-    # No changes made here
-    est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
-                 dat=dat, control = list(fnscale=-1), hessian=TRUE)
-    plot_post_conc(est, ivt_d, dat)
+    # Won't produce plot unless both sample information and dosing schedule has been provided
+    if(input$nMeas > 0 & input$nDoseAdmin > 0){
+      
+      # Get data from rhandsontable
+      datHot <- sampTable()
+      ivtHot <- doseTable()
+      
+      # Required for compatibility with functions from Bayes.R
+      names(datHot) <- c("time_h", "conc_mg_dl")
+      names(ivtHot) <- c("begin", "end", "k_R")
+      ivtHot <- apply(ivtHot, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3]))
+      
+      # Functions from Bayes.R
+      # To try default example, use:
+      #    dat = data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
+      #    ivt = ivt_d
+      est <- optim(lpr_mean_d, log_posterior, ivt=ivtHot,
+                   dat=datHot, control = list(fnscale=-1), hessian=TRUE)
+      plot_post_conc(est, ivtHot, datHot)
+      
+      
+    }else if(input$nMeas == 0){
+      #Put in code to produce plot based only on prior
+    }
   })
+  
+  
 }
 
 
