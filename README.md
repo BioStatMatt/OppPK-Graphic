@@ -13,5 +13,3 @@ This project aims to create and refine a statistical graphic and Shiny app for t
 http://jrowen.github.io/rhandsontable/
 
 ### TODO:
-
-- check whether need to marginalize posterior w.r.t. error variance
