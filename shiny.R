@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(rhandsontable)
 
 source('Bayes.R')
 
@@ -116,7 +117,23 @@ server <- function(input, output) {
       
       
     }else if(input$nMeas == 0){
-      #Put in code to produce plot based only on prior
+      if(input$nDoseAdmin > 0){
+        dat <- data.frame("empty" = numeric(0))
+        
+        ivt_d <- list(list(begin=0.0, end=0.5, k_R=6),
+                      list(begin=8.0, end=8.5, k_R=6),
+                      list(begin=16.0, end=16.5, k_R=6),
+                      list(begin=24.0, end=24.5, k_R=6),
+                      list(begin=32.0, end=32.5, k_R=6))
+        
+        ivtHot <- doseTable()
+        names(ivtHot) <- c("begin", "end", "k_R")
+        ivtHot <- apply(ivtHot, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3]))
+        
+        est <- optim(lpr_mean_d, log_posterior, ivt=ivtHot,
+                     dat=dat, control = list(fnscale=-1), hessian=TRUE)
+        plot_post_conc(est, ivtHot, dat)
+      }
     }
   })
   
