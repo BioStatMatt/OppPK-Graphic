@@ -22,13 +22,13 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       # Consider replacing these with numeric inputs
-      # Drop down to select number of available sample measurements
-      selectInput("nMeas", "Number of Sample Measurements",
-                  choices = 0:10,
-                  selected = 0),
       # Drop down to select number of doses administered
       selectInput("nDoseAdmin", "Number of Doses Administered", 
                   choices = 0:10, # I'm not sure what a reasonable upper bound would be here
+                  selected = 0),
+      # Drop down to select number of available sample measurements
+      selectInput("nMeas", "Number of Sample Measurements",
+                  choices = 0:10,
                   selected = 0),
       
       # Section for dosing information
