@@ -1,0 +1,28 @@
+\documentclass{article}
+\usepackage{amsmath}
+\begin{document}
+\section{Two-compartment model}
+The two-compartment pharmacokinetic model is expressed as a system of two ordinary differential equations as follows, where $m_1$ and $m_2$ are the masses of drug in the central and peripheral compartments, respectively.
+
+\begin{align}
+\frac{dm_1}{dt} &= -k_{10}m_1 - k_{12}m_1 + k_{21}m_2 + k_R \nonumber \\
+\frac{dm_2}{dt} &= \phantom{-k_{10}m_1} + k_{12}m_1 - k_{21}m_2 \nonumber
+\end{align}
+
+The concentration of drug in the central compartment is given by $c_1 = m_1/v_1$, where $v_1$ is the volume of the central compartment. The parameters $k_{10}$, $k_{12}$, $k_{21}$, and $k_R$ are described in Table \ref{tab:pkpars}
+
+\begin{table}
+\begin{tabular}{lll} \hline
+Parameter & Units & Description \\ \hline
+$k_{10}$ & h$^{-1}$ & Elimination rate from central compartment\\
+$k_{12}$ & h$^{-1}$ & Distribution rate from central to peripheral compartment\\
+$k_{21}$ & h$^{-1}$ & Distribution rate from peripheral to central compartment\\
+$k_R$  & g$\cdot$h$^{-1}$ & Infusion rate into central compartment\\
+$v_1$  & l & Volume of central compartment\\
+\hline
+\end{tabular}
+\caption{Two-compartment model parameters. \label{tab:pkpars}}
+\end{table}
+
+\section{Bayes prediction model}
+\end{document}
