@@ -25,4 +25,20 @@ $v_1$  & l & Volume of central compartment\\
 \end{table}
 
 \section{Bayes prediction model}
+Concentration measurements are generally treated using a nonlinear regression with either additive or multiplicative error, where the former is expressed as follows:
+\begin{displaymath}
+c_{ij} = \eta_i(t_{ij}, \theta_i) + \epsilon_{ij}
+\end{displaymath}
+\noindent In this expression, $c_{ij}$ is the measured concentration for subject $i = 1 \ldots n$ at time $t_{ij}$ for $j = 1 \ldots m_i$, $\eta_i(t_{ij}, \theta_i)$ is the two-compartment model solution for subject $i$ at time $t_{ij}$ given parameters $\theta_i = [k_{10i}, k_{12i}, k_{21i}, v_{1i}]$, and $\epsilon_{ij}$ represents i.i.d. random error with mean zero. The multiplicative error model is expressed by substituting $c_{ij}$ and $\eta_i(t_{ij}, \theta_i)$ with their natural logarithm, respectively. By specifying the random error density function, say $f(\epsilon_{ij}, \sigma)$, the subject-specific likelihood function is 
+\begin{displaymath}
+L_i(\theta_i, \sigma) = \prod_{j=1}^{m_i} f(c_{ij} - \eta_i(t_{ij}, \theta_i), \sigma).
+\end{displaymath}
+\noindent Thus, given a prior distribution $\pi(\theta_i)$, the subject-specific posterior is proportional to $\pi(\theta_i,\sigma)L_i(\theta_i,\sigma)$.
+
+In the current context, $f$ is taken as the normal density function with mean zero and standard deviation $\sigma$, and the prior distribution is generated to satisfy the following:
+\begin{align}
+[\log k_{10}, \log k_{12}, \log k_{21}, \log v_1] &\sim N_4(\mu_0, \Sigma_0) \\
+[\sigma] &\sim \Gamma(\alpha_0, \beta_0)
+\end{align}
+\noindent where $N_4(\mu_0, \Sigma_0)$ represents the 4-variate normal distribution with mean $\mu_0$ and covariance matrix $\Sigma_0$, and $\Gamma(\alpha_0, \beta_0)$ represents the gamma distribution with shape $\alpha_0$ and rate $\beta_0$. 
 \end{document}
