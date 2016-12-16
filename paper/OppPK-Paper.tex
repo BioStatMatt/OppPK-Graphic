@@ -57,7 +57,7 @@ h(\theta_i) \approx  h(\hat{\theta_i}) + G_{\hat{\theta_i}}(\theta_i - \hat{\the
 \begin{displaymath}
 h(\theta_i) \sim N(h(\hat{\theta_i}), G^T_{\hat{\theta_i}}[-H_{\hat{\theta_i}}]^{-1}G_{\hat{\theta_i}}). 
 \end{displaymath}
-\noindent An approximate $(1-\alpha)*100$\% credible interval for $h(\theta_i)$ is thus computed in the usual manner. 
+\noindent An approximate $(1-\alpha)\cdot 100$\% credible interval for $h(\theta_i)$ is thus computed in the usual manner. This method is computationally elegant, since the posterior Hessian and posterior mode can be computed simultaneously by most optimization software routines (e.g., the R function `optim'). Indeed, this method usually has the smallest computational burden (i.e., number of likelihood evaluations) among the three methods considered here.
 
 \subsection{Variational approximation}
 \subsection{Quadrature approximation}
