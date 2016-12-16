@@ -47,15 +47,15 @@ Due to the nonlinearity of the two-compartment model, the posterior distribution
 \subsection{Laplace approximation}
 We first considered a method that makes use of two approximations. The first is a Laplace approximation to the posterior density, and the second is a first order Taylor approximation of the target summary (i.e., the `delta method'). The Laplace approximation is given as follows
 \begin{displaymath}
-\pi_i(\theta_i, \sigma) \approx N([\hat{\theta_i},\hat{\sigma}], [-H_{\hat{\theta_i}}]^{-1})
+\pi_i(\log \theta_i, \log \sigma) \approx N([\log \hat{\theta_i},\log \hat{\sigma}], [-H]^{-1})
 \end{displaymath} 
-\noindent where $[\hat{\theta_i},\hat{\sigma}]$ is the posterior mode and $H_{\hat{\theta_i}}$ is the posterior Hessian evaluated at $\theta_i$. The second approximation makes use of the delta method, such that a posterior functional $h(\theta_i)$ has an approximate normal distribution. The first-order Taylor expansion of $h(\theta_i)$ is 
+\noindent where $[\log \hat{\theta_i},\log \hat{\sigma}]$ is the posterior mode and $H_{\hat{\theta_i}}$ is the posterior Hessian with respect to $[\log \theta_i, \log \sigma]$ evaluated at the posterior mode. The second approximation makes use of the delta method, such that a posterior functional $h(\log \theta_i)$ has an approximate normal distribution. The first-order Taylor expansion of $h(\log \theta_i)$ is 
 \begin{displaymath}
-h(\theta_i) \approx  h(\hat{\theta_i}) + G_{\hat{\theta_i}}(\theta_i - \hat{\theta_i}),
+h(\log \theta_i) \approx  h(\log \hat{\theta_i}) + G^T(\log \theta_i - \log \hat{\theta_i}),
 \end{displaymath}
-\noindent where $G_{\hat{\theta_i}}$ is the gradient of $h(\theta_i)$ evaluated at $\hat{\theta_i}$. Thus, given that $\theta_i$ has an approximate normal distribution, the same is true for $h(\theta_i)$:
+\noindent where $G$ is the gradient of $h(\log \theta_i)$ with respect to $[\log \theta_i, \log \sigma]$ evaluated at the posterior mode. Thus, given that $[\log \theta_i, \log \sigma]$ has an approximate normal distribution, the same is true for $h(\log \theta_i)$:
 \begin{displaymath}
-h(\theta_i) \sim N(h(\hat{\theta_i}), G^T_{\hat{\theta_i}}[-H_{\hat{\theta_i}}]^{-1}G_{\hat{\theta_i}}). 
+h(\log \theta_i) \sim N(h(\log \hat{\theta_i}), G^T[-H]^{-1}G). 
 \end{displaymath}
 \noindent An approximate $(1-\alpha)\cdot 100$\% credible interval for $h(\theta_i)$ is thus computed in the usual manner. This method is computationally elegant, since the posterior Hessian and posterior mode can be computed simultaneously by most optimization software routines (e.g., the R function `optim'). Indeed, this method usually has the smallest computational burden (i.e., number of likelihood evaluations) among the three methods considered here.
 
