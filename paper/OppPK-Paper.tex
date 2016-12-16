@@ -33,7 +33,7 @@ c_{ij} = \eta_i(t_{ij}, \theta_i) + \epsilon_{ij}
 \begin{displaymath}
 L_i(\theta_i, \sigma) = \prod_{j=1}^{m_i} f(c_{ij} - \eta_i(t_{ij}, \theta_i), \sigma).
 \end{displaymath}
-\noindent Thus, given a prior distribution $\pi(\theta_i)$, the subject-specific posterior is proportional to $\pi(\theta_i,\sigma)L_i(\theta_i,\sigma)$.
+\noindent Thus, given a prior distribution $\pi_0(\theta_i)$, the subject-specific posterior is proportional to $\pi_i(\theta_i, \sigma) \propto \pi_0(\theta_i,\sigma)L_i(\theta_i,\sigma)$.
 
 In the current context, $f$ is taken as the normal density function with mean zero and standard deviation $\sigma$, and the prior distribution is generated to satisfy the following:
 \begin{align}
@@ -41,4 +41,24 @@ In the current context, $f$ is taken as the normal density function with mean ze
 [\sigma] &\sim \Gamma(\alpha_0, \beta_0)
 \end{align}
 \noindent where $N_4(\mu_0, \Sigma_0)$ represents the 4-variate normal distribution with mean $\mu_0$ and covariance matrix $\Sigma_0$, and $\Gamma(\alpha_0, \beta_0)$ represents the gamma distribution with shape $\alpha_0$ and rate $\beta_0$. 
+
+Due to the nonlinearity of the two-compartment model, the posterior distribution does not take a familiar form, and posterior summaries must be approximated. In particular, we sought to compute 95% credible bands for subject-specific concentration-time curves, and for summaries of the curve (e.g., the area under the curve, or the length of time in which the concentration exceeds a specified value). Monte Carlo techniques are often used to approximate these quantities. However, because these posterior summaries are presented in a web application in real time, we sought alternatives that were less computationally intensive and deterministic. We consider several methods as described in the following sections.
+
+\subsection{Laplace approximation}
+We first considered a method that makes use of two approximations. The first is a Laplace approximation to the posterior density, and the second is a first order Taylor approximation of the target summary (i.e., the 'delta method'). The Laplace approximation to the posterior density for $\theta_i$ is given as follows
+\begin{displaymath}
+\pi_i(\theta_i, \sigma) \approx N([\hat{\theta_i},\hat{\sigma}], [-H_{\hat{\theta_i}}]^{-1})
+\end{displaymath} 
+\noindent where $[\hat{\theta_i},\hat{\sigma}]$ is the posterior mode and $H_{\hat{\theta_i}}$ is the posterior Hessian evaluated at $\theta_i$. The second approximation makes use of the delta method, such that a posterior functional $h(\theta_i)$ has an approximate normal distribution. The first-order Taylor expansion of $h(\theta_i)$ is 
+\begin{displaymath}
+h(\theta_i) \approx  h(\hat{\theta_i}) + G_{\hat{\theta_i}}(\theta_i - \hat{\theta_i}),
+\end{displaymath}
+\noindent where $G_{\hat{\theta_i}}$ is the gradient of $h(\theta_i)$ evaluated at $\hat{\theta_i}$. Thus, given that $\theta_i$ has an approximate normal distribution, the same is true for $h(\theta_i)$:
+\begin{displaymath}
+h(\theta_i) \sim N(h(\hat{\theta_i}), G^T_{\hat{\theta_i}}[-H_{\hat{\theta_i}}]^{-1}G_{\hat{\theta_i}}). 
+\end{displaymath}
+\noindent An approximate $(1-\alpha)*100$\% credible interval for $h(\theta_i)$ is thus computed in the usual manner. 
+
+\subsection{Variational approximation}
+\subsection{Quadrature approximation}
 \end{document}
