@@ -18,10 +18,10 @@ $k_{10}$ & h$^{-1}$ & Elimination rate from central compartment\\
 $k_{12}$ & h$^{-1}$ & Distribution rate from central to peripheral compartment\\
 $k_{21}$ & h$^{-1}$ & Distribution rate from peripheral to central compartment\\
 $k_R$  & g$\cdot$h$^{-1}$ & Infusion rate into central compartment\\
-$v_1$  & l & Volume of central compartment\\
+$v_1$  & L & Volume of central compartment\\
 \hline
 \end{tabular}
-\caption{Two-compartment model parameters. \label{tab:pkpars}}
+\caption{Two-compartment model parameter units (SI) and descriptions. \label{tab:pkpars}}
 \end{table}
 
 \section{Bayes prediction model}
@@ -45,7 +45,7 @@ In the current context, $f$ is taken as the normal density function with mean ze
 Due to the nonlinearity of the two-compartment model, the posterior distribution does not take a familiar form, and posterior summaries must be approximated. In particular, we sought to compute 95% credible bands for subject-specific concentration-time curves, and for summaries of the curve (e.g., the area under the curve, or the length of time in which the concentration exceeds a specified value). Monte Carlo techniques are often used to approximate these quantities. However, because these posterior summaries are presented in a web application in real time, we sought alternatives that were less computationally intensive and deterministic. We consider several methods as described in the following sections.
 
 \subsection{Laplace approximation}
-We first considered a method that makes use of two approximations. The first is a Laplace approximation to the posterior density, and the second is a first order Taylor approximation of the target summary (i.e., the 'delta method'). The Laplace approximation to the posterior density for $\theta_i$ is given as follows
+We first considered a method that makes use of two approximations. The first is a Laplace approximation to the posterior density, and the second is a first order Taylor approximation of the target summary (i.e., the `delta method'). The Laplace approximation is given as follows
 \begin{displaymath}
 \pi_i(\theta_i, \sigma) \approx N([\hat{\theta_i},\hat{\sigma}], [-H_{\hat{\theta_i}}]^{-1})
 \end{displaymath} 
