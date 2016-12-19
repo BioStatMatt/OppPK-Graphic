@@ -1,7 +1,17 @@
 \documentclass{article}
 \usepackage{amsmath}
 \begin{document}
-\section{Two-compartment model}
+
+\section{Introduction}
+\begin{itemize}
+\item Goal is to facilitate therapeutic drug monitoring (TDM); translational research.
+\item PK predictions often not reported with uncertainty; cite literature.
+\item Need to quantify uncertianty in real time, but it's difficult.
+\item We created a web app and suite of methods that accomplish this.
+\end{itemize}
+
+\section{Methods}
+\subsection{Two-compartment model}
 The two-compartment pharmacokinetic model is expressed as a system of two ordinary differential equations as follows, where $m_1$ and $m_2$ are the masses of drug in the central and peripheral compartments, respectively.
 
 \begin{align}
@@ -24,7 +34,7 @@ $v_1$  & L & Volume of central compartment\\
 \caption{Two-compartment model parameter units (SI) and descriptions. \label{tab:pkpars}}
 \end{table}
 
-\section{Bayes prediction model}
+\subsection{Bayes prediction model}
 Concentration measurements are generally treated using a nonlinear regression with either additive or multiplicative error, where the former is expressed as follows:
 \begin{displaymath}
 c_{ij} = \eta_i(t_{ij}, \theta_i) + \epsilon_{ij}
@@ -44,7 +54,7 @@ In the current context, $f$ is taken as the normal density function with mean ze
 
 Due to the nonlinearity of the two-compartment model, the posterior distribution does not take a familiar form, and posterior summaries must be approximated. In particular, we sought to compute 95% credible bands for subject-specific concentration-time curves, and for summaries of the curve (e.g., the area under the curve, or the length of time in which the concentration exceeds a specified value). Monte Carlo techniques are often used to approximate these quantities. However, because these posterior summaries are presented in a web application in real time, we sought alternatives that were less computationally intensive and deterministic. We consider several methods as described in the following sections.
 
-\subsection{Laplace approximation}
+\subsubsection{Laplace approximation}
 We first considered a method that makes use of two approximations. The first is a Laplace approximation to the posterior density, and the second is a first order Taylor approximation of the target summary (i.e., the `delta method'). The Laplace approximation is given as follows
 \begin{displaymath}
 \pi_i(\log \theta_i, \log \sigma) \approx N([\log \hat{\theta_i},\log \hat{\sigma}], [-H]^{-1})
@@ -59,6 +69,6 @@ h(\log \theta_i) \sim N(h(\log \hat{\theta_i}), G^T[-H]^{-1}G).
 \end{displaymath}
 \noindent An approximate $(1-\alpha)\cdot 100$\% credible interval for $h(\theta_i)$ is thus computed in the usual manner. This method is computationally elegant, since the posterior Hessian and posterior mode can be computed simultaneously by most optimization software routines (e.g., the R function `optim'). Indeed, this method usually has the smallest computational burden (i.e., number of likelihood evaluations) among the three methods considered here.
 
-\subsection{Variational approximation}
-\subsection{Quadrature approximation}
+\subsubsection{Variational approximation}
+\subsubsection{Quadrature approximation}
 \end{document}
