@@ -12,13 +12,12 @@ lpk_mean_d <- c(lv_1=3.223, lk_10=-1.650)
 lpk_vcov_d <- 300 * matrix(c( 0.00167, -0.00128,
                              -0.00128,  0.00154), 2,2)
 
-## Prior distribution for error variance (gamma with shape and scale)
-err_shape_d <- 2
-err_scale_d <- sqrt(754)/2
-err_mean_d  <- err_shape_d * err_scale_d
+## Prior distribution for error standard deviation (normal)
+ler_mean_d <- 2.33
+ler_sdev_d <- 0.32
 
 ## Vectof of all three parameters
-lpr_mean_d  <- c(lpk_mean_d, log(err_mean_d)) 
+lpr_mean_d  <- c(lpk_mean_d, ler_mean_d) 
 
 ## Given a series of concentration measurements for a particular patient, 
 ## we can use the corresponding posterior distribution to summarize pharmacodynamic
@@ -31,12 +30,12 @@ lpr_mean_d  <- c(lpk_mean_d, log(err_mean_d))
 ## err - error standard deviation
 ## mu  - prior mean for PK parameters
 ## sig - prior variange-covariance for PK parameters (2x2 PD matrix)
-## err_shape - prior shape parameter for error variance
-## err_scale - prior scale parameter for error variance
+## ler_mean - prior mean for error variance
+## ler_sdev - prior standard deviation for error variance
 log_prior <- function(lpr, mu=lpk_mean_d, sig=lpk_vcov_d,
-                      err_shape=err_shape_d, err_scale=err_scale_d)
+                      ler_mean=ler_mean_d, ler_sdev=ler_sdev_d)
   dmvnorm(lpr[1:2], mu, sig, log = TRUE) + 
-  dgamma(lpr[3], shape=err_shape, scale=err_scale, log=TRUE)
+  dnorm(lpr[3], mean=ler_mean, sd=ler_sdev, log=TRUE)
 
 ## Log likelihood function
 ## lpr - log parameter vector
