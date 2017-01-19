@@ -81,7 +81,7 @@ fdGrad <- function (pars, fun, ...,
 }
 
 # Function to calculate the fraction of time spent above 4*mic
-# Relies on the following variables from post_plot_conc 
+# Relies on the following variables created within post_plot_conc 
 #   (not given as arguments here): ivt, tms, con[1,]
 mic_stat <- function(pk_pars, th){
   #Values of the plotted posterior concentrations
@@ -91,8 +91,8 @@ mic_stat <- function(pk_pars, th){
   soln <- pk_solution(v_1=exp(pk_pars[1]), k_10=exp(pk_pars[2]), ivt=ivt)
   # Use PK solution to define function that computes 
   #   the concentrations centered by threshold
-  f_mic <- function(tms, thr = th){ 
-    val <- apply(soln(tms)*1000, 2, function(x) pmax(0,x)) - thr
+  f_mic <- function(times = tms){ 
+    val <- apply(soln(times)*1000, 2, function(x) pmax(0,x)) - th
     return(val[1,]) 
   }
   
@@ -110,7 +110,7 @@ mic_stat <- function(pk_pars, th){
     ce <- unique(conc[tms == ied[i]] - th) #Printing two copies for some reason? Inserted unique to fix for now
     if(cb < 0 && ce > 0){
       # Crosses to above threshold during interval
-      root <- uniroot(f_mic, thr = th, lower = ibe[i], upper = ied[i])$root #Must move from below to above
+      root <- uniroot(f_mic, lower = ibe[i], upper = ied[i])$root #Must move from below to above
       t_above <- t_above + (ied[i] - root)
     }else if(cb >= 0 && ce >= 0){ 
       # Above during whole interval
@@ -125,7 +125,7 @@ mic_stat <- function(pk_pars, th){
     if(ce > 0 && c_next < 0){
       # Crosses to below threshold during interval
       ulim <- ifelse(j < length(ied), ibe[j+1], max(tms))
-      root <- uniroot(f_mic, thr = th, lower = ied[j], upper = ulim)$root #Must move from above to below
+      root <- uniroot(f_mic, lower = ied[j], upper = ulim)$root #Must move from above to below
       t_above <- t_above + (root - ied[j])
     }else if(ce >= 0 && c_next >= 0){ 
       # Above during whole interval
@@ -223,14 +223,14 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
 ## Example
 ## suppose that a patient received the default dosing pattern
 ## and has the following concentration measurements at time 1h
-dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
+# dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
 # # dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
 # # dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
 # # dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
 # system.time({
-  est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
-               dat=dat, control = list(fnscale=-1), hessian=TRUE)
-  plot_post_conc(est, ivt_d, dat)
+  # est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
+  #              dat=dat, control = list(fnscale=-1), hessian=TRUE)
+  # plot_post_conc(est, ivt_d, dat)
 # })
 
 ## plot prior and posterior predictions for the concentration-time curve
@@ -262,4 +262,3 @@ dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
 # lines(ell_posterior, lty=1)
 # legend('topright', c('Prior', 'Posterior'),
 #        lty=c(2,1), bty='n')
-
