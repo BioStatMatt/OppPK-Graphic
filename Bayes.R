@@ -106,7 +106,7 @@ mic_stat <- function(pk_pars, th){
   # Time between start of dose and end of dose
   for(i in 1:length(ibe)){
     # Concentration values at interval endpoints, centered by threshold
-    cb <- ifelse(i > 1, conc[tms == ibe[i]] - th, 0)
+    cb <- ifelse(i > 1, conc[tms == ibe[i]] - th, 0-64)
     ce <- unique(conc[tms == ied[i]] - th) #Printing two copies for some reason? Inserted unique to fix for now
     if(cb < 0 && ce > 0){
       # Crosses to above threshold during interval
@@ -121,7 +121,7 @@ mic_stat <- function(pk_pars, th){
   # Time between end of one dose and start of the next
   for(j in 1:length(ied)){
     ce <- unique(conc[tms == ied[j]] - th)
-    c_next <- ifelse(j < length(ied), conc[tms == ibe[j+1]] - th, conc[max(tms)] - th)
+    c_next <- ifelse(j < length(ied), conc[tms == ibe[j+1]] - th, conc[tms == max(tms)] - th)
     if(ce > 0 && c_next < 0){
       # Crosses to below threshold during interval
       ulim <- ifelse(j < length(ied), ibe[j+1], max(tms))
