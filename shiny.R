@@ -16,7 +16,7 @@ source('Bayes.R')
 ui <- fluidPage(
   
   # Application title
-  titlePanel("OppSampPK"), 
+  titlePanel(htmlOutput("titleText")), 
   
   # Sidebar 
   sidebarLayout(
@@ -60,6 +60,12 @@ ui <- fluidPage(
 
 # Define server logic required to draw plot
 server <- function(input, output) {
+  # App title with line break
+  output$titleText <- renderUI({
+    HTML(paste0("Therapeutic drug monitoring:", '<br/>',
+                "Assessing individual pharmacokinetic heterogeneity"))
+  })
+  
   
   #rhandsontable for dosing information
   output$dosing <- renderRHandsontable({

@@ -10,7 +10,7 @@ source('model.R')
 ## weakly informative prior that has arisen from a prior study (in submission).
 lpk_mean_d <- c(lv_1=3.223, lk_10=-1.650)
 lpk_vcov_d <- 300 * matrix(c( 0.00167, -0.00128,
-                             -0.00128,  0.00154), 2,2)
+                              -0.00128,  0.00154), 2,2)
 
 ## Prior distribution for error standard deviation (normal)
 ler_mean_d <- 2.33
@@ -80,6 +80,67 @@ fdGrad <- function (pars, fun, ...,
   })
 }
 
+# Function to calculate the fraction of time spent above 4*mic
+# Relies on the following variables created within post_plot_conc 
+#   (not given as arguments here): ivt, tms, con[1,]
+mic_stat <- function(pk_pars, th){
+  #Values of the plotted posterior concentrations
+  conc <- con[1,]
+  
+  # Get PK solution equation evaluated at parameters
+  soln <- pk_solution(v_1=exp(pk_pars[1]), k_10=exp(pk_pars[2]), ivt=ivt)
+  # Use PK solution to define function that computes 
+  #   the concentrations centered by threshold
+  f_mic <- function(tms, th = thres){ 
+    val <- apply(soln(tms)*1000, 2, function(x) pmax(0,x)) - th
+    return(val[1,]) 
+  }
+  
+  # Convert start/end dose times to numeric vectors
+  ibe <- sapply(ivt, `[[`, 'begin')
+  ied <- sapply(ivt, `[[`, 'end')
+  
+  # Initialize time spent above 4*mic
+  t_above <- 0
+  
+  # Time between start of dose and end of dose
+  for(i in 1:length(ibe)){
+    # Concentration values at interval endpoints, centered by threshold
+    cb <- ifelse(i > 1, conc[tms == ibe[i]] - th, 0)
+    ce <- unique(conc[tms == ied[i]] - th) #Printing two copies for some reason? Inserted unique to fix for now
+    if(cb < 0 && ce > 0){
+      # Crosses to above threshold during interval
+      root <- uniroot(f_mic, th = th, lower = ibe[i], upper = ied[i])$root #Must move from below to above
+      t_above <- t_above + (ied[i] - root)
+    }else if(cb >= 0 && ce >= 0){ 
+      # Above during whole interval
+      t_above <- t_above + (ied[i] - ibe[i])
+    }  
+  }
+  
+  # Time between end of one dose and start of the next
+  for(j in 1:length(ied)){
+    ce <- unique(conc[tms == ied[j]] - th)
+    c_next <- ifelse(j < length(ied), conc[tms == ibe[j+1]] - th, conc[max(tms)] - th)
+    if(ce > 0 && c_next < 0){
+      # Crosses to below threshold during interval
+      ulim <- ifelse(j < length(ied), ibe[j+1], max(tms))
+      root <- uniroot(f_mic, th = th, lower = ied[j], upper = ulim)$root #Must move from above to below
+      t_above <- t_above + (root - ied[j])
+    }else if(ce >= 0 && c_next >= 0){ 
+      # Above during whole interval
+      t_add <- ifelse(j < length(ied), ibe[j+1] - ied[j], max(tms) - ied[j])
+      t_above <- t_above + t_add
+    }  
+  }
+  
+  # Use time spent above 4*mic to compute proportion
+  frac_time <- t_above/max(tms)
+  
+  return(frac_time)
+}
+
+
 ## Plot posterior estimated concentration-time curve with approximate
 ## Wald-type posterior (1-alp)*100% credible bands
 ## est - object returned from 'optim' with 'hessian=TRUE'
@@ -87,7 +148,7 @@ fdGrad <- function (pars, fun, ...,
 ## dat - concentration data: data.frame(time_h, conc_mg_dl)
 ## alp - credible level (1-alp)%
 ## cod - additional time following last dose (h)
-plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12) {
+plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
   ## Compute gradient of log concentration-time curve with
   ## respect to PK parameters, at their posterior estimated values
   tmx <- max(sapply(ivt, function(x) x$end), na.rm=TRUE) + 12
@@ -98,9 +159,9 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12) {
   tms <- sapply(ivt, function(x) c(x$begin, x$end))
   tms <- c(tms, max(tms)+cod)
   tms <- unlist(sapply(1:(length(tms)-1),
-    function(i) seq(tms[i], tms[i+1], 1/6)))
+                       function(i) seq(tms[i], tms[i+1], 1/6)))
   tms <- pmax(1e-3, tms)
-
+  
   ## Approximate standard deviation of log concentration-time curve
   grd <- fdGrad(est$par, function(pars) {
     sol <- pk_solution(v_1=exp(pars[1]), k_10=exp(pars[2]), ivt=ivt) 
@@ -116,7 +177,7 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12) {
   plot(tms, con[1,], xlab="Time (h)", ylab="Central Concentration (mg/dL)",
        ylim=c(0, max(exp(log(con[1,])+qnorm(1-alp/2)*sde), na.rm=TRUE)),
        type='n', main="Concentration vs. Time")
-
+  
   ## Plot 95% credible bands
   polygon(c(tms,rev(tms)), 
           c(exp(log(con[1,]) + qnorm(1-alp/2)*sde),
@@ -133,6 +194,29 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12) {
   legend('topleft', c("Predicted", "95% Credible Band", "Measured"),
          lwd=c(2,4,NA), pch=c(NA,NA,16), col=c('#882255','#CC6677','black'),
          border=NA, bty='n')
+  
+  
+  ## Add MIC statistic information to plot
+  # Obtain statistic
+  frac_mic <- mic_stat(pk_pars = est$par, th = thres)
+  
+  # SE of logit(statistic)
+  grd_mic <- fdGrad(est$par, function(pars) {
+    mic <- mic_stat(pk_pars = pars, th = thres) 
+    log(mic/(1-mic)) ## constrain between 0 and 1
+  })
+  sde_mic <- sqrt(diag(t(grd_mic) %*% solve(-est$hessian) %*% grd_mic))
+  
+  # Get CI for logit transformed statistic then backtransform to original scale
+  ci_logit_mic <- log(frac_mic/(1-frac_mic)) + c(-1,1)*qnorm(1-alph/2)*sde_mic
+  ci_mic <- exp(ci_logit_mic)/(1 + exp(ci_logit_mic))
+  
+  #Plotting elements for mic statistic
+  abline(h = thres, lty = 2)
+  
+  legend("topright", bty = 'n',
+         legend = c(paste("FracTime>4*MIC:", round(frac_mic, 3)), 
+                    paste("95% CI: (", round(ci_mic[1], 3), ",", round(ci_mic[2], 3), ")")))
 }
 
 
@@ -178,3 +262,4 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12) {
 # lines(ell_posterior, lty=1)
 # legend('topright', c('Prior', 'Posterior'),
 #        lty=c(2,1), bty='n')
+
