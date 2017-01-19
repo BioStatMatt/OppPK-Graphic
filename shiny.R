@@ -21,81 +21,63 @@ ui <- fluidPage(
   # Sidebar 
   sidebarLayout(
     sidebarPanel(
-      # Consider replacing these with numeric inputs
-      # Drop down to select number of doses administered
-      selectInput("nDoseAdmin", "Number of Doses Administered", 
-                  choices = 0:10, # I'm not sure what a reasonable upper bound would be here
-                  selected = 0),
-      # Drop down to select number of available sample measurements
-      selectInput("nMeas", "Number of Sample Measurements",
-                  choices = 0:10,
-                  selected = 0),
-      
-      # Section for dosing information
-      helpText("Dosing Schedule"),
+      p("This application is designed to inform the user about an individual patient's 
+        response to treatment over time. Currently, the application is based on the
+        pharmacodynamics of piperacillin-tazobactam, used to treat infection in patients
+        with acute kidney injury."),
+      p("Below, users can enter information on the patient's dosing schedule and 
+        measurements of drug concentration from available blood samples."),
+      ####
+      h4("Dosing Schedule"),
       # Set up checkbox and table for common dosing pattern
       checkboxInput("common", "Common Dosing Pattern"),
       conditionalPanel(
         condition = "input.common == true",
-        # Inputs needed for table
         numericInput("freq", "Dose Frequency (h)", value = 8, min = 0),
         numericInput("duration", "Infusion Duration (h)", value = .5, min = 0),
         numericInput("infRate", "Infusion Rate (g/h)", value = 6, min = 0),
-        # Actual table
+        numericInput("num", "Number of Doses", value = 5, min = 0),
         actionButton("goT", "Update Table"),
         tableOutput("commonPattern")
       ),
-      rHandsontableOutput("dosing"),  
+      rHandsontableOutput("dosing"),
+      ####
       
-      # Section for sample information
-      helpText("Sample Information"),
+      # Set up area for rhandsontable output
+      h4("Sample Information"),
       rHandsontableOutput("sample"),
-      
       # Button for updating plot
       actionButton("go", "Update Plot")
-    ),
+      ),
     # Show a plot
     # Hide a warning that results from the odd way I'm grabbing the time/dose data from input (in server)
     mainPanel(plotOutput("plot"), tags$style(type="text/css",
                                              ".shiny-output-error { visibility: hidden; }",
                                              ".shiny-output-error:before { visibility: hidden; }"))
-  )
+    )
 )
 
 
 # Define server logic required to draw plot
 server <- function(input, output) {
   
-  #rhandsontable for sample information
-  sampDat <- reactive({
-    if (is.null(input$hotSamp)) {
-      vec <- numeric(input$nMeas)
-      sampDF = data.frame("Time" = vec, "Concentration" = vec)
-    } else {
-      sampDF = hot_to_r(input$hotSamp)
+  #rhandsontable for dosing information
+  output$dosing <- renderRHandsontable({
+    if(1 - input$common){
+      vec <- numeric(10)
+      doseDF = data.frame("Start" = vec, "End" = vec, "Infusion Rate" = vec,
+                          check.names = FALSE)
+      rhandsontable(doseDF)
     }
+  })
+  
+  #rhandsontable for sample information
+  output$sample <- renderRHandsontable({
+    vec <- numeric(10)
+    sampDF = data.frame("Time" = vec, "Concentration" = vec)
     rhandsontable(sampDF)
   })
   
-  output$sample <- renderRHandsontable({
-    sampDat()
-  })
-  
-  
-  #rhandsontable for dosing information
-  doseDat <- reactive({
-    if (is.null(input$hotDose)) {
-      vec <- numeric(input$nDoseAdmin)
-      doseDF = data.frame("Start" = vec, "End" = vec, "Infusion_Rate" = vec)
-    } else {
-      doseDF = hot_to_r(input$hotDose)
-    }
-    rhandsontable(doseDF)
-  })
-  
-  output$dosing <- renderRHandsontable({
-    if(1 - input$common){doseDat()}
-  })
   
   ##########################################################
   
@@ -113,11 +95,12 @@ server <- function(input, output) {
   # Make table if a common dosing pattern was used
   comTab <- eventReactive(input$goT, {
     if(input$common){
-      nDose <- as.numeric(input$nDoseAdmin)
+      nDose <- as.numeric(input$num)
       begin <- seq(0, (nDose - 1) * input$freq, by = input$freq)
       end <- begin + input$duration
       kR <- rep(input$infRate, nDose)
-      comPat <- data.frame(begin, end, kR)      
+      comPat <- data.frame("Start" = begin, "End" = end, "Infusion Rate" = kR,
+                           check.names = FALSE)      
     }else{
       comPat <- NULL
     }
@@ -132,12 +115,15 @@ server <- function(input, output) {
   
   # Create the plot
   output$plot <- renderPlot({
+    # Get data from rHandsonTable
+    stab <- sampTable()
+    dtab <- doseTable()
+    
     # Won't produce plot unless both sample information and dosing schedule has been provided
-    if(input$nMeas > 0 & input$nDoseAdmin > 0){
+    if(sum(stab > 0) > 0 & sum(dtab > 0) > 0){
       
       # SAMPLE INFORMATION
-      # Get data from rhandsontable
-      datHot <- sampTable()
+      datHot <- stab[apply(stab, MARGIN = 1, function(x) any(x > 0)),]
       # Required for compatibility with functions from Bayes.R
       names(datHot) <- c("time_h", "conc_mg_dl")
       
@@ -151,7 +137,7 @@ server <- function(input, output) {
         ivtData <- apply(ivtData, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3]))  
       }else{ # Common dosing pattern not specified
         # Get data from rhandsontable
-        ivtHot <- doseTable()
+        ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
         
         # Required for compatibility with functions from Bayes.R
         names(ivtHot) <- c("begin", "end", "k_R")
@@ -168,8 +154,8 @@ server <- function(input, output) {
       plot_post_conc(est, ivtData, datHot)
       
       
-    }else if(input$nMeas == 0){
-      if(input$nDoseAdmin > 0){
+    }else if(sum(stab > 0) == 0){
+      if(sum(dtab > 0) > 0){
         dat <- data.frame("empty" = numeric(0))
         
         # Get dosing information
@@ -182,7 +168,7 @@ server <- function(input, output) {
           ivtData <- apply(ivtData, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3]))  
         }else{ # Common dosing pattern not specified
           # Get data from rhandsontable
-          ivtHot <- doseTable()
+          ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
           
           # Required for compatibility with functions from Bayes.R
           names(ivtHot) <- c("begin", "end", "k_R")
@@ -196,7 +182,6 @@ server <- function(input, output) {
       }
     }
   })
-  
   
 }
 
