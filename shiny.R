@@ -123,7 +123,11 @@ server <- function(input, output) {
   output$plot <- renderPlot({
     # Get data from rHandsonTable
     stab <- sampTable()
-    dtab <- doseTable()
+    if(input$common){
+      dtab <- comTab()
+    }else{
+      dtab <- doseTable()
+    }
     
     # Won't produce plot unless both sample information and dosing schedule has been provided
     if(sum(stab > 0) > 0 & sum(dtab > 0) > 0){
@@ -134,22 +138,13 @@ server <- function(input, output) {
       names(datHot) <- c("time_h", "conc_mg_dl")
       
       # DOSING INFORMATION
-      if(input$common){
-        # Common dosing pattern
-        ivtData <- comTab()
-        
-        # Required for compatibility with functions from Bayes.R
-        names(ivtData) <- c("begin", "end", "k_R")
-        ivtData <- apply(ivtData, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3]))  
-      }else{ # Common dosing pattern not specified
-        # Get data from rhandsontable
-        ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
-        
-        # Required for compatibility with functions from Bayes.R
-        names(ivtHot) <- c("begin", "end", "k_R")
-        ivtHot <- apply(ivtHot, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3])) 
-        ivtData <- ivtHot
-      }
+      # Get data from rhandsontable
+      ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
+      
+      # Required for compatibility with functions from Bayes.R
+      names(ivtHot) <- c("begin", "end", "k_R")
+      ivtHot <- apply(ivtHot, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3])) 
+      ivtData <- ivtHot
       
       # Functions from Bayes.R
       # To try default example, use:
@@ -164,23 +159,14 @@ server <- function(input, output) {
       if(sum(dtab > 0) > 0){
         dat <- data.frame("empty" = numeric(0))
         
-        # Get dosing information
-        if(input$common){
-          # Common dosing pattern
-          ivtData <- comTab()
-          
-          # Required for compatibility with functions from Bayes.R
-          names(ivtData) <- c("begin", "end", "k_R")
-          ivtData <- apply(ivtData, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3]))  
-        }else{ # Common dosing pattern not specified
-          # Get data from rhandsontable
-          ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
-          
-          # Required for compatibility with functions from Bayes.R
-          names(ivtHot) <- c("begin", "end", "k_R")
-          ivtHot <- apply(ivtHot, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3])) 
-          ivtData <- ivtHot
-        }
+        # DOSING INFORMATION
+        # Get data from rhandsontable
+        ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
+        
+        # Required for compatibility with functions from Bayes.R
+        names(ivtHot) <- c("begin", "end", "k_R")
+        ivtHot <- apply(ivtHot, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3])) 
+        ivtData <- ivtHot
         
         est <- optim(lpr_mean_d, log_posterior, ivt=ivtData,
                      dat=dat, control = list(fnscale=-1), hessian=TRUE)
