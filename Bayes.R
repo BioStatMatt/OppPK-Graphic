@@ -200,13 +200,13 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
   
   # SE of logit(statistic)
   grd_mic <- fdGrad(est$par, function(pars) {
-    mic <- mic_stat(pk_pars = pars, th = thres) 
+    mic <- mic_stat(pk_pars = pars, ivt, tms, con, th = thres) 
     log(mic/(1-mic)) ## constrain between 0 and 1
   })
   sde_mic <- sqrt(diag(t(grd_mic) %*% solve(-est$hessian) %*% grd_mic))
   
   # Get CI for logit transformed statistic then backtransform to original scale
-  ci_logit_mic <- log(frac_mic/(1-frac_mic)) + c(-1,1)*qnorm(1-alph/2)*sde_mic
+  ci_logit_mic <- log(frac_mic/(1-frac_mic)) + c(-1,1)*qnorm(1-alp/2)*sde_mic
   ci_mic <- exp(ci_logit_mic)/(1 + exp(ci_logit_mic))
   
   #Plotting elements for mic statistic
