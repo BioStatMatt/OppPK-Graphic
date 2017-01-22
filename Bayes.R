@@ -80,10 +80,8 @@ fdGrad <- function (pars, fun, ...,
   })
 }
 
-# Function to calculate the fraction of time spent above 4*mic
-# Relies on the following variables created within post_plot_conc 
-#   (not given as arguments here): ivt, tms, con[1,]
-mic_stat <- function(pk_pars, th){
+# Function to calculate the fraction of time spent above 'th'
+mic_stat <- function(pk_pars, ivt, tms, con, th){
   #Values of the plotted posterior concentrations
   conc <- con[1,]
   
@@ -198,7 +196,7 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
   
   ## Add MIC statistic information to plot
   # Obtain statistic
-  frac_mic <- mic_stat(pk_pars = est$par, th = thres)
+  frac_mic <- mic_stat(pk_pars = est$par, ivt, tms, con, th = thres)
   
   # SE of logit(statistic)
   grd_mic <- fdGrad(est$par, function(pars) {
