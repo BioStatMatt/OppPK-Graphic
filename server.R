@@ -15,10 +15,10 @@ server <- function(input, output) {
   output$dosing <- renderRHandsontable({
     if(1 - input$common){
       vec <- numeric(10)
-      doseDF = data.frame("Start (h)" = vec,
-                          "End (h)" = vec,
-                          "Rate (g/h)" = vec,
-                          check.names = FALSE)
+      doseDF  <- data.frame(
+        "Start (h)" = c(0, 8, 16, 24, 32, rep(0,5)),
+        "End (h)" = c(0.5, 8.5, 16.5, 24.5, 32.5, rep(0,5)),
+        "Rate (g/h)" = c(6, 6, 6, 6, 6, rep(0,5)), check.names=FALSE)
       rhandsontable(doseDF)
     }
   })
