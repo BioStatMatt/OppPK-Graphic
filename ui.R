@@ -5,19 +5,20 @@ library('rhandsontable')
 ui <- fluidPage(
   
   # Application title
-  titlePanel(htmlOutput("titleText")), 
+  titlePanel("", "Piperacillin TDM"), 
   
   # Sidebar 
   sidebarLayout(
     sidebarPanel(
-      p("This application is designed to inform the user about an individual patient's 
-        response to treatment over time. Currently, the application is based on the
-        pharmacodynamics of piperacillin-tazobactam, used to treat infection in patients
-        with acute kidney injury."),
-      p("Below, users can enter information on the patient's dosing schedule and 
-        measurements of drug concentration from available blood samples."),
+      h3("Piperacillin TDM"),
+      hr(),
+      p("This application is designed to provide individualized estimates of drug exposure for
+        critically ill patients with sepsis that have received one or more doses of piperacillin."),
+      p("Enter patient dosing schedule (historical and/or proposed) and 
+         measurements of drug concentration in blood (if any)."),
+      hr(),
       ####
-      h4("Dosing Schedule"),
+      h4("Infusion Schedule"),
       # Set up checkbox and table for common dosing pattern
       checkboxInput("common", "Common Dosing Pattern"),
       conditionalPanel(
@@ -33,7 +34,7 @@ ui <- fluidPage(
       ####
       
       # Set up area for rhandsontable output
-      h4("Sample Information"),
+      h4("Concentration Data"),
       rHandsontableOutput("sample"),
       # Button for updating plot
       actionButton("go", "Update Plot")

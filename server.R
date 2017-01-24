@@ -7,8 +7,7 @@ source('Bayes.R')
 server <- function(input, output) {
   # App title with line break
   output$titleText <- renderUI({
-    HTML(paste0("Therapeutic drug monitoring:", '<br/>',
-                "Assessing individual pharmacokinetic heterogeneity"))
+    HTML("Piperacillin Therapeutic Drug Monitoring")
   })
   
   
@@ -16,7 +15,9 @@ server <- function(input, output) {
   output$dosing <- renderRHandsontable({
     if(1 - input$common){
       vec <- numeric(10)
-      doseDF = data.frame("Start" = vec, "End" = vec, "Infusion Rate" = vec,
+      doseDF = data.frame("Start (h)" = vec,
+                          "End (h)" = vec,
+                          "Rate (g/h)" = vec,
                           check.names = FALSE)
       rhandsontable(doseDF)
     }
@@ -25,7 +26,9 @@ server <- function(input, output) {
   #rhandsontable for sample information
   output$sample <- renderRHandsontable({
     vec <- numeric(10)
-    sampDF = data.frame("Time" = vec, "Concentration" = vec)
+    sampDF = data.frame("Time (h)" = vec, 
+                        "Conc. (μg/ml)" = vec,
+                        check.names=FALSE)
     rhandsontable(sampDF)
   })
   
@@ -50,7 +53,9 @@ server <- function(input, output) {
       begin <- seq(0, (nDose - 1) * input$freq, by = input$freq)
       end <- begin + input$duration
       kR <- rep(input$infRate, nDose)
-      comPat <- data.frame("Start" = begin, "End" = end, "Infusion Rate" = kR,
+      comPat <- data.frame("Start (h)" = begin,
+                           "End (h)" = end, 
+                           "Rate (g/h)" = kR,
                            check.names = FALSE)      
     }else{
       comPat <- NULL
