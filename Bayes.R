@@ -221,18 +221,18 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
 }
 
 
-# Example
-# suppose that a patient received the default dosing pattern
-# and has the following concentration measurements at time 1h
-dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
-# dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
-# dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
-# dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
-system.time({
-est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
-             dat=dat, control = list(fnscale=-1), hessian=TRUE)
-plot_post_conc(est, ivt_d, dat)
-})
+## Example
+## suppose that a patient received the default dosing pattern
+## and has the following concentration measurements at time 1h
+#dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
+## dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
+## dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
+## dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
+#system.time({
+#est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
+#             dat=dat, control = list(fnscale=-1), hessian=TRUE)
+#plot_post_conc(est, ivt_d, dat)
+#})
 
 ## plot prior and posterior predictions for the concentration-time curve
 # par(mfrow=c(1,2))
