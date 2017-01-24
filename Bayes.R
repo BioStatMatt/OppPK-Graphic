@@ -175,7 +175,7 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
   sol <- pk_solution(v_1=exp(est$par[1]), k_10=exp(est$par[2]), ivt=ivt) 
   con <- apply(sol(tms)*1000, 2, function(x) pmax(0,x))
   par(mfrow=c(1,1))
-  plot(tms, con[1,], xlab="Time (h)", ylab="Central Concentration (mg/dL)",
+  plot(tms, con[1,], xlab="Time (h)", ylab="Concentration (ug/mL)",
        ylim=c(0, max(exp(log(con[1,])+qnorm(1-alp/2)*sde), na.rm=TRUE)),
        type='n', main="Concentration vs. Time")
   
@@ -216,7 +216,7 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
   abline(h = thres, lty = 2)
   
   legend("topright", bty = 'n',
-         legend = c(paste("FracTime>4*MIC:", round(frac_mic, 3)), 
+         legend = c(paste("fT > 64ug/mL:", round(frac_mic, 3)), 
                     paste("95% CI: (", round(ci_mic[1], 3), ",", round(ci_mic[2], 3), ")")))
 }
 
