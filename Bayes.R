@@ -147,17 +147,18 @@ mic_stat <- function(pk_pars, ivt, tms, con, th){
 ## alp - credible level (1-alp)%
 ## cod - additional time following last dose (h)
 plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
-  ## Compute gradient of log concentration-time curve with
-  ## respect to PK parameters, at their posterior estimated values
-  tmx <- max(sapply(ivt, function(x) x$end), na.rm=TRUE) + 12
-  
+
   ## Compute plotting times
   ## - ensure peak and trough times
   ## - avoid time zero
   tms <- sapply(ivt, function(x) c(x$begin, x$end))
   tms <- c(tms, max(tms)+cod)
-  tms <- unlist(sapply(1:(length(tms)-1),
-                       function(i) seq(tms[i], tms[i+1], 1/6)))
+  tms <- unlist(sapply(1:(length(tms)-1), function(i) { 
+    s1 <- seq(tms[i], tms[i+1], 1/10)
+    if(tms[i+1] %% 1/10)
+      s1 <- c(s1, tms[i+1])
+    return(s1)
+    }))
   tms <- pmax(1e-3, tms)
   
   ## Approximate standard deviation of log concentration-time curve
@@ -169,6 +170,8 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
   sde <- ifelse(is.nan(sde), 0, sde)
   
   ## Plot posterior estiamte
+  col_bg <- "#AAAAB5"
+  col_fg <- "#3E465A"
   sol <- pk_solution(v_1=exp(est$par[1]), k_10=exp(est$par[2]), ivt=ivt) 
   con <- apply(sol(tms)*1000, 2, function(x) pmax(0,x))
   par(mfrow=c(1,1))
@@ -180,17 +183,17 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
   polygon(c(tms,rev(tms)), 
           c(exp(log(con[1,]) + qnorm(1-alp/2)*sde),
             rev(exp(log(con[1,]) - qnorm(1-alp/2)*sde))),
-          col="#CC6677", border=NA)
+          col=col_bg, border=NA)
   
   ## Plot posterior estimate
-  lines(tms, con[1,], lwd=2, col="#882255")
+  lines(tms, con[1,], lwd=2, col=col_fg)
   
   ## Plot measured points
   points(dat$time_h, dat$conc_mg_dl, pch=16)
   
   ## Create legend
   legend('topleft', c("Predicted", "95% Credible Band", "Measured"),
-         lwd=c(2,4,NA), pch=c(NA,NA,16), col=c('#882255','#CC6677','black'),
+         lwd=c(2,4,NA), pch=c(NA,NA,16), col=c(col_fg,col_bg,'black'),
          border=NA, bty='n')
   
   
@@ -218,18 +221,18 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
 }
 
 
-## Example
-## suppose that a patient received the default dosing pattern
-## and has the following concentration measurements at time 1h
-# dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
-# # dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
-# # dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
-# # dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
-# system.time({
-  # est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
-  #              dat=dat, control = list(fnscale=-1), hessian=TRUE)
-  # plot_post_conc(est, ivt_d, dat)
-# })
+# Example
+# suppose that a patient received the default dosing pattern
+# and has the following concentration measurements at time 1h
+dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
+# dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
+# dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
+# dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
+system.time({
+est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
+             dat=dat, control = list(fnscale=-1), hessian=TRUE)
+plot_post_conc(est, ivt_d, dat)
+})
 
 ## plot prior and posterior predictions for the concentration-time curve
 # par(mfrow=c(1,2))
