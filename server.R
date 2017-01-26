@@ -19,7 +19,7 @@ server <- function(input, output) {
         "Start (h)" = c(0, 8, 16, 24, 32, rep(0,5)),
         "End (h)" = c(0.5, 8.5, 16.5, 24.5, 32.5, rep(0,5)),
         "Rate (g/h)" = c(6, 6, 6, 6, 6, rep(0,5)), check.names=FALSE)
-      rhandsontable(doseDF)
+      rhandsontable(doseDF, colWidths = c(65,65,70))
     }
   })
   
@@ -29,7 +29,7 @@ server <- function(input, output) {
     sampDF = data.frame("Time (h)" = vec, 
                         "Conc. (μg/ml)" = vec,
                         check.names=FALSE)
-    rhandsontable(sampDF)
+    rhandsontable(sampDF, colWidths = c(65,100))
   })
   
   
