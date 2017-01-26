@@ -14,12 +14,24 @@ server <- function(input, output) {
   #rhandsontable for dosing information
   output$dosing <- renderRHandsontable({
     if(1 - input$common){
-      vec <- numeric(10)
       doseDF  <- data.frame(
         "Start (h)" = c(0, 8, 16, 24, 32, rep(0,5)),
         "End (h)" = c(0.5, 8.5, 16.5, 24.5, 32.5, rep(0,5)),
         "Rate (g/h)" = c(6, 6, 6, 6, 6, rep(0,5)), check.names=FALSE)
       rhandsontable(doseDF, colWidths = c(65,65,70))
+    }else{
+      comPat <- hot_to_r(input$dosing)
+      nDose <- as.numeric(input$num)
+      begin <- seq(0, (nDose - 1) * input$freq, by = input$freq)
+      end <- begin + input$duration
+      kR <- rep(input$infRate, nDose)
+      comPat[1:input$num, "Start (h)"] <- begin
+      comPat[1:input$num, "End (h)"] <- end
+      comPat[1:input$num, "Rate (g/h)"] <- kR
+      if(input$num > 10){
+        comPat[(input$num + 1):10] <- matrix(0, ncol = 3, nrow = 10 - input$num)
+      }
+      rhandsontable(comPat, colWidths = c(65,65,70))
     }
   })
   
@@ -36,36 +48,16 @@ server <- function(input, output) {
   ##########################################################
   
   # These functions allow me to grab the data from rhandsontable to use in plotting
-  sampTable <- eventReactive(input$go, {
+  sampTable <- eventReactive(input$goPlot, {
     live_data = hot_to_r(input$sample)
     return(live_data)
   })
-  doseTable <- eventReactive(input$go, {
+  
+  doseTable <- eventReactive(input$goPlot, {
     live_data = hot_to_r(input$dosing)
     return(live_data)
   })
   
-  ##########################################################
-  # Make table if a common dosing pattern was used
-  comTab <- eventReactive(input$goT, {
-    if(input$common){
-      nDose <- as.numeric(input$num)
-      begin <- seq(0, (nDose - 1) * input$freq, by = input$freq)
-      end <- begin + input$duration
-      kR <- rep(input$infRate, nDose)
-      comPat <- data.frame("Start (h)" = begin,
-                           "End (h)" = end, 
-                           "Rate (g/h)" = kR,
-                           check.names = FALSE)      
-    }else{
-      comPat <- NULL
-    }
-    return(comPat)
-  })
-  
-  output$commonPattern <- renderTable({
-    comTab()
-  })
   
   ##########################################################
   
@@ -73,11 +65,7 @@ server <- function(input, output) {
   output$plot <- renderPlot({
     # Get data from rHandsonTable
     stab <- sampTable()
-    if(input$common){
-      dtab <- comTab()
-    }else{
-      dtab <- doseTable()
-    }
+    dtab <- doseTable()
     
     # Won't produce plot unless both sample information and dosing schedule has been provided
     if(sum(stab > 0) > 0 & sum(dtab > 0) > 0){
@@ -121,6 +109,12 @@ server <- function(input, output) {
         est <- optim(lpr_mean_d, log_posterior, ivt=ivtData,
                      dat=dat, control = list(fnscale=-1), hessian=TRUE)
         plot_post_conc(est, ivtData, dat)
+        
+        #Display coordinates when hovering over a point
+        output$info <- renderText({
+          paste("Time=", round(input$plot_hover$x,2), "h",
+                 "\nConcentration=", round(input$plot_hover$y,2), "μg/ml", sep=" ")
+        })
       }
     }
   })
