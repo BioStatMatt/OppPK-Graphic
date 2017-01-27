@@ -14,10 +14,14 @@ server <- function(input, output) {
   #rhandsontable for dosing information
   output$dosing <- renderRHandsontable({
     if(1 - input$common){
-      doseDF  <- data.frame(
-        "Start (h)" = c(0, 8, 16, 24, 32, rep(0,5)),
-        "End (h)" = c(0.5, 8.5, 16.5, 24.5, 32.5, rep(0,5)),
-        "Rate (g/h)" = c(6, 6, 6, 6, 6, rep(0,5)), check.names=FALSE)
+      if(is.null(input$dosing)){
+        doseDF  <- data.frame(
+          "Start (h)" = c(0, 8, 16, 24, 32, rep(0,5)),
+          "End (h)" = c(0.5, 8.5, 16.5, 24.5, 32.5, rep(0,5)),
+          "Rate (g/h)" = c(6, 6, 6, 6, 6, rep(0,5)), check.names=FALSE)
+      }else{
+        doseDF <- hot_to_r(input$dosing)
+      }
       rhandsontable(doseDF, colWidths = c(65,65,70))
     }else{
       comPat <- hot_to_r(input$dosing)
