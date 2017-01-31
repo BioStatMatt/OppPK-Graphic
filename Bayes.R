@@ -216,7 +216,7 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
   abline(h = thres, lty = 2)
   
   legend("topright", bty = 'n',
-         legend = c(paste("fT > 64ug/mL:", round(frac_mic, 3)), 
+         legend = c(paste("fT > threshold:", round(frac_mic, 3)), 
                     paste("95% CI: (", round(ci_mic[1], 3), ",", round(ci_mic[2], 3), ")")))
 }
 

@@ -68,41 +68,33 @@ server <- function(input, output) {
   
   # Create the plot
   output$plot <- renderPlot({
-    # Get data from rHandsonTable
-    stab <- sampTable()
-    dtab <- doseTable()
-    
-    # Won't produce plot unless both sample information and dosing schedule has been provided
-    if(sum(stab > 0) > 0 & sum(dtab > 0) > 0){
-      
-      # SAMPLE INFORMATION
-      datHot <- stab[apply(stab, MARGIN = 1, function(x) any(x > 0)),]
-      # Required for compatibility with functions from Bayes.R
-      names(datHot) <- c("time_h", "conc_mg_dl")
+    if(input$goPlot == 0){
+      dat <- data.frame("empty" = numeric(0))
       
       # DOSING INFORMATION
-      # Get data from rhandsontable
-      ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
-      # Convert duration of infusions to start/end times
-      ivtHot[,"Duration (h)"] <- ivtHot[, "Start (h)"] + ivtHot[, "Duration (h)"]
+      ivtData <- list(list(begin=0.0, end=0.5, k_R=6),
+                               list(begin=8.0, end=8.5, k_R=6),
+                               list(begin=16.0, end=16.5, k_R=6),
+                               list(begin=24.0, end=24.5, k_R=6),
+                               list(begin=32.0, end=32.5, k_R=6))
       
-      # Required for compatibility with functions from Bayes.R
-      names(ivtHot) <- c("begin", "end", "k_R")
-      ivtHot <- apply(ivtHot, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3])) 
-      ivtData <- ivtHot
-      
-      # Functions from Bayes.R
-      # To try default example, use:
-      #    dat = data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
-      #    ivt = ivt_d
       est <- optim(lpr_mean_d, log_posterior, ivt=ivtData,
-                   dat=datHot, control = list(fnscale=-1), hessian=TRUE)
-      plot_post_conc(est, ivtData, datHot)
+                   dat=dat, control = list(fnscale=-1), hessian=TRUE)
+      plot_post_conc(est, ivtData, dat, thres = input$thres)
       
+    }else{
+
+      # Get data from rHandsonTable
+      stab <- sampTable()
+      dtab <- doseTable()
       
-    }else if(sum(stab > 0) == 0){
-      if(sum(dtab > 0) > 0){
-        dat <- data.frame("empty" = numeric(0))
+      # Won't produce plot unless both sample information and dosing schedule has been provided
+      if(sum(stab > 0) > 0 & sum(dtab > 0) > 0){
+        
+        # SAMPLE INFORMATION
+        datHot <- stab[apply(stab, MARGIN = 1, function(x) any(x > 0)),]
+        # Required for compatibility with functions from Bayes.R
+        names(datHot) <- c("time_h", "conc_mg_dl")
         
         # DOSING INFORMATION
         # Get data from rhandsontable
@@ -115,17 +107,42 @@ server <- function(input, output) {
         ivtHot <- apply(ivtHot, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3])) 
         ivtData <- ivtHot
         
+        # Functions from Bayes.R
+        # To try default example, use:
+        #    dat = data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
+        #    ivt = ivt_d
         est <- optim(lpr_mean_d, log_posterior, ivt=ivtData,
-                     dat=dat, control = list(fnscale=-1), hessian=TRUE)
-        plot_post_conc(est, ivtData, dat, thres = input$thres)
+                     dat=datHot, control = list(fnscale=-1), hessian=TRUE)
+        plot_post_conc(est, ivtData, datHot)
         
-        #Display coordinates when hovering over a point
-        output$info <- renderText({
-          paste("Time=", round(input$plot_hover$x,2), "h",
-                 "\nConcentration=", round(input$plot_hover$y,2), "μg/ml", sep=" ")
-        })
+        
+      }else if(sum(stab > 0) == 0){
+        if(sum(dtab > 0) > 0){
+          dat <- data.frame("empty" = numeric(0))
+          
+          # DOSING INFORMATION
+          # Get data from rhandsontable
+          ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
+          # Convert duration of infusions to start/end times
+          ivtHot[,"Duration (h)"] <- ivtHot[, "Start (h)"] + ivtHot[, "Duration (h)"]
+          
+          # Required for compatibility with functions from Bayes.R
+          names(ivtHot) <- c("begin", "end", "k_R")
+          ivtHot <- apply(ivtHot, MARGIN = 1, function(x) list(begin = x[1], end = x[2], k_R = x[3])) 
+          ivtData <- ivtHot
+          
+          est <- optim(lpr_mean_d, log_posterior, ivt=ivtData,
+                       dat=dat, control = list(fnscale=-1), hessian=TRUE)
+          plot_post_conc(est, ivtData, dat, thres = input$thres)
+          
+        }
       }
     }
+    #Display coordinates when hovering over a point
+    output$info <- renderText({
+      paste("Time=", round(input$plot_hover$x,2), "h",
+            "\nConcentration=", round(input$plot_hover$y,2), "μg/ml", sep=" ")
+    })
   })
   
 }
