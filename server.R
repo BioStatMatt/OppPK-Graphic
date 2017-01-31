@@ -32,9 +32,10 @@ server <- function(input, output) {
       comPat[1:input$num, "Start (h)"] <- begin
       comPat[1:input$num, "Duration (h)"] <- dur
       comPat[1:input$num, "Rate (g/h)"] <- kR
-      if(input$num > 10){
-        comPat[(input$num + 1):10] <- matrix(0, ncol = 3, nrow = 10 - input$num)
+      if(input$num < 10){
+        comPat[(input$num + 1):10,] <- matrix(0, ncol = 3, nrow = 10 - input$num)
       }
+
       rhandsontable(comPat, colWidths = c(65,85,70))
     }
   })
