@@ -17,25 +17,25 @@ server <- function(input, output) {
       if(is.null(input$dosing)){
         doseDF  <- data.frame(
           "Start (h)" = c(0, 8, 16, 24, 32, rep(0,5)),
-          "End (h)" = c(0.5, 8.5, 16.5, 24.5, 32.5, rep(0,5)),
+          "Duration (h)" = c(rep(0.5, 5), rep(0,5)),
           "Rate (g/h)" = c(6, 6, 6, 6, 6, rep(0,5)), check.names=FALSE)
       }else{
         doseDF <- hot_to_r(input$dosing)
       }
-      rhandsontable(doseDF, colWidths = c(65,65,70))
+      rhandsontable(doseDF, colWidths = c(65,85,70))
     }else{
       comPat <- hot_to_r(input$dosing)
       nDose <- as.numeric(input$num)
       begin <- seq(0, (nDose - 1) * input$freq, by = input$freq)
-      end <- begin + input$duration
+      dur <- rep(input$duration, input$num)
       kR <- rep(input$infRate, nDose)
       comPat[1:input$num, "Start (h)"] <- begin
-      comPat[1:input$num, "End (h)"] <- end
+      comPat[1:input$num, "Duration (h)"] <- dur
       comPat[1:input$num, "Rate (g/h)"] <- kR
       if(input$num > 10){
         comPat[(input$num + 1):10] <- matrix(0, ncol = 3, nrow = 10 - input$num)
       }
-      rhandsontable(comPat, colWidths = c(65,65,70))
+      rhandsontable(comPat, colWidths = c(65,85,70))
     }
   })
   
@@ -82,6 +82,8 @@ server <- function(input, output) {
       # DOSING INFORMATION
       # Get data from rhandsontable
       ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
+      # Convert duration of infusions to start/end times
+      ivtHot[,"Duration (h)"] <- ivtHot[, "Start (h)"] + ivtHot[, "Duration (h)"]
       
       # Required for compatibility with functions from Bayes.R
       names(ivtHot) <- c("begin", "end", "k_R")
@@ -104,6 +106,8 @@ server <- function(input, output) {
         # DOSING INFORMATION
         # Get data from rhandsontable
         ivtHot <- dtab[apply(dtab, MARGIN = 1, function(x) any(x > 0)),]
+        # Convert duration of infusions to start/end times
+        ivtHot[,"Duration (h)"] <- ivtHot[, "Start (h)"] + ivtHot[, "Duration (h)"]
         
         # Required for compatibility with functions from Bayes.R
         names(ivtHot) <- c("begin", "end", "k_R")
