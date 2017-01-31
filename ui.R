@@ -43,6 +43,8 @@ ui <- dashboardPage(
     HTML('<br/>'),
     actionButton("goPlot", "Update Plot"),
     HTML('<br/><br/>'),
+    numericInput('thres', "Threshold (μg/ml)", value = 64, min = 0),
+    HTML('<br/><br/>'),
     
     plotOutput("plot", hover = "plot_hover"), 
     verbatimTextOutput("info"),

@@ -112,7 +112,7 @@ server <- function(input, output) {
         
         est <- optim(lpr_mean_d, log_posterior, ivt=ivtData,
                      dat=dat, control = list(fnscale=-1), hessian=TRUE)
-        plot_post_conc(est, ivtData, dat)
+        plot_post_conc(est, ivtData, dat, thres = input$thres)
         
         #Display coordinates when hovering over a point
         output$info <- renderText({
