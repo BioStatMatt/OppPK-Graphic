@@ -5,37 +5,39 @@ library('ellipse')  ## ellipse (only needed for example)
 source('model.R')
 
 ## Here we assume that a one-compartment model is sufficient, and that 
-## prior distribution for the log of the v_1 and k_10 parameters have 
+## prior distribution for the log of the v_1, k_10, k_12, and k_21 parameters have 
 ## a normal distribution with mean and covariance as follows. This is a
 ## weakly informative prior that has arisen from a prior study (in submission).
-lpk_mean_d <- c(lv_1=3.223, lk_10=-1.650)
-lpk_vcov_d <- 300 * matrix(c( 0.00167, -0.00128,
-                              -0.00128,  0.00154), 2,2)
+lpk_mean_d <- c(lv_1=3.223, lk_10=-1.650, lk_12 = -7, lk_21 = -7)
+lpk_vcov_d <- 300 * matrix(c(  0.00167, -0.00128,      0,      0,
+                               -0.00128,  0.00154,      0,      0,
+                               0,        0, .00015,      0,
+                               0,        0,      0, .00015), 4, 4)
 
 ## Prior distribution for error standard deviation (normal)
 ler_mean_d <- 2.33
 ler_sdev_d <- 0.32
 
-## Vectof of all three parameters
+## Vectof of all 5 parameters
 lpr_mean_d  <- c(lpk_mean_d, ler_mean_d) 
 
 ## Given a series of concentration measurements for a particular patient, 
 ## we can use the corresponding posterior distribution to summarize pharmacodynamic
 ## target attainment, and make predictions about how the patient will respond to
 ## dose/frequency changes. The function below evaluates the log posterior density
-## as a function of the two PK parameters (lk_10, lv_1).
+## as a function of the four PK parameters (lv_1, lk_10, lk_12, lk_21).
 
 ## Log prior density
 ## lpr - log parameter vector
 ## err - error standard deviation
 ## mu  - prior mean for PK parameters
-## sig - prior variange-covariance for PK parameters (2x2 PD matrix)
+## sig - prior variange-covariance for PK parameters (4x4 PD matrix)
 ## ler_mean - prior mean for error variance
 ## ler_sdev - prior standard deviation for error variance
 log_prior <- function(lpr, mu=lpk_mean_d, sig=lpk_vcov_d,
                       ler_mean=ler_mean_d, ler_sdev=ler_sdev_d)
-  dmvnorm(lpr[1:2], mu, sig, log = TRUE) + 
-  dnorm(lpr[3], mean=ler_mean, sd=ler_sdev, log=TRUE)
+  dmvnorm(lpr[1:4], mu, sig, log = TRUE) + 
+  dnorm(lpr[5], mean=ler_mean, sd=ler_sdev, log=TRUE)
 
 ## Log likelihood function
 ## lpr - log parameter vector
@@ -44,10 +46,10 @@ log_prior <- function(lpr, mu=lpk_mean_d, sig=lpk_vcov_d,
 ## ini - initial concentrations
 log_likelihood <- function(lpr, ivt, dat, ini=c(0,0)) {
   epr <- exp(lpr)
-  sol <- pk_solution(v_1=epr[1], k_10=epr[2], ivt=ivt)
+  sol <- pk_solution(v_1=epr[1], k_10=epr[2], k_12=epr[3], k_21=epr[4], ivt=ivt)
   dat$pconc_g_l   <- sol(dat$time_h)[1,]
   dat$pconc_mg_dl <- 1000*dat$pconc_g_l
-  with(dat, sum(dnorm(conc_mg_dl, pconc_mg_dl, epr[3], log=TRUE)))
+  with(dat, sum(dnorm(conc_mg_dl, pconc_mg_dl, epr[5], log=TRUE)))
 }
 
 ## Log posterior density
@@ -86,7 +88,8 @@ mic_stat <- function(pk_pars, ivt, tms, con, th){
   conc <- con[1,]
   
   # Get PK solution equation evaluated at parameters
-  soln <- pk_solution(v_1=exp(pk_pars[1]), k_10=exp(pk_pars[2]), ivt=ivt)
+  soln <- pk_solution(v_1=exp(pk_pars[1]), k_10=exp(pk_pars[2]), 
+                      k_12=exp(pk_pars[3]), k_21=exp(pk_pars[4]), ivt=ivt)
   # Use PK solution to define function that computes 
   #   the concentrations centered by threshold
   f_mic <- function(times = tms){ 
@@ -147,7 +150,7 @@ mic_stat <- function(pk_pars, ivt, tms, con, th){
 ## alp - credible level (1-alp)%
 ## cod - additional time following last dose (h)
 plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
-
+  
   ## Compute plotting times
   ## - ensure peak and trough times
   ## - avoid time zero
@@ -158,12 +161,13 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
     if(tms[i+1] %% 1/10)
       s1 <- c(s1, tms[i+1])
     return(s1)
-    }))
+  }))
   tms <- pmax(1e-3, tms)
   
   ## Approximate standard deviation of log concentration-time curve
   grd <- fdGrad(est$par, function(pars) {
-    sol <- pk_solution(v_1=exp(pars[1]), k_10=exp(pars[2]), ivt=ivt) 
+    sol <- pk_solution(v_1=exp(pars[1]), k_10=exp(pars[2]), 
+                       k_12=exp(pars[3]), k_21=exp(pars[4]), ivt=ivt) 
     log(sol(tms)[1,]*1000) ## mulitply by 1000: g/l -> ug/ml
   })
   sde <- sqrt(diag(grd %*% solve(-est$hessian) %*% t(grd)))
@@ -172,7 +176,8 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
   ## Plot posterior estiamte
   col_bg <- "#AAAAB5"
   col_fg <- "#3E465A"
-  sol <- pk_solution(v_1=exp(est$par[1]), k_10=exp(est$par[2]), ivt=ivt) 
+  sol <- pk_solution(v_1=exp(est$par[1]), k_10=exp(est$par[2]),
+                     k_12=exp(est$par[3]), k_21=exp(est$par[4]), ivt=ivt) 
   con <- apply(sol(tms)*1000, 2, function(x) pmax(0,x))
   par(mfrow=c(1,1))
   plot(tms, con[1,], xlab="Time (h)", ylab="Concentration (ug/mL)",
@@ -224,14 +229,14 @@ plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
 ## Example
 ## suppose that a patient received the default dosing pattern
 ## and has the following concentration measurements at time 1h
-#dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
+# dat <- data.frame(time_h = c(1,4,40), conc_mg_dl = c(82.7,80.4,60))
 ## dat <- data.frame(time_h = c(1,4,8), conc_mg_dl = c(82.7,50.4,30.6))
 ## dat <- data.frame(time_h = c(1), conc_mg_dl = c(82.7))
 ## dat <- data.frame(time_h = c(8), conc_mg_dl = c(30.6))
 #system.time({
-#est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
-#             dat=dat, control = list(fnscale=-1), hessian=TRUE)
-#plot_post_conc(est, ivt_d, dat)
+# est <- optim(lpr_mean_d, log_posterior, ivt=ivt_d,
+#              dat=dat, control = list(fnscale=-1), hessian=TRUE)
+# plot_post_conc(est, ivt_d, dat)
 #})
 
 ## plot prior and posterior predictions for the concentration-time curve
