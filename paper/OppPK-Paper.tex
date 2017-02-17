@@ -46,11 +46,11 @@ $v_1$  & L & Volume of central compartment\\
 \end{table}
 
 \subsection{Bayes prediction model}
-Concentration measurements are generally treated using a nonlinear regression with either additive or multiplicative error, where the former is expressed as follows:
+Concentration measurements are modeled using a nonlinear regression method with either additive error as follows:
 \begin{displaymath}
 c_{ij} = \eta_i(t_{ij}, \theta_i) + \epsilon_{ij}
 \end{displaymath}
-\noindent In this expression, $c_{ij}$ is the measured concentration for subject $i = 1 \ldots n$ at time $t_{ij}$ for $j = 1 \ldots m_i$, $\eta_i(t_{ij}, \theta_i)$ is the two-compartment model solution for subject $i$ at time $t_{ij}$ given parameters $\theta_i = [k_{10i}, k_{12i}, k_{21i}, v_{1i}]$, and $\epsilon_{ij}$ represents i.i.d. random error with mean zero. The multiplicative error model is expressed by substituting $c_{ij}$ and $\eta_i(t_{ij}, \theta_i)$ with their natural logarithm, respectively. By specifying the random error density function, say $f(\epsilon_{ij}, \sigma)$, the subject-specific likelihood function is 
+\noindent In this expression, $c_{ij}$ is the measured concentration for subject $i = 1 \ldots n$ at time $t_{ij}$ for $j = 1 \ldots m_i$, $\eta_i(t_{ij}, \theta_i)$ is the two-compartment model solution for subject $i$ at time $t_{ij}$ given parameters $\theta_i = [k_{10i}, k_{12i}, k_{21i}, v_{1i}]$, and $\epsilon_{ij}$ represents i.i.d. random error with mean zero. By specifying the random error density function, say $f(\epsilon_{ij}, \sigma)$, the subject-specific likelihood function is 
 \begin{displaymath}
 L_i(\theta_i, \sigma) = \prod_{j=1}^{m_i} f(c_{ij} - \eta_i(t_{ij}, \theta_i), \sigma).
 \end{displaymath}
@@ -58,19 +58,19 @@ L_i(\theta_i, \sigma) = \prod_{j=1}^{m_i} f(c_{ij} - \eta_i(t_{ij}, \theta_i), \
 
 In the current context, $f$ is taken as the normal density function with mean zero and standard deviation $\sigma$, and the prior distribution is generated to satisfy the following:
 \begin{align}
-[\log k_{10}, \log k_{12}, \log k_{21}, \log v_1] &\sim N_4(\mu_0, \Sigma_0) \\
-[\sigma] &\sim \Gamma(\alpha_0, \beta_0)
+[\log \theta_i] &\sim N_4(\mu_0, \Sigma_0) \\
+[\log \sigma] &\sim N_1(m_0, s_0)
 \end{align}
-\noindent where $N_4(\mu_0, \Sigma_0)$ represents the 4-variate normal distribution with mean $\mu_0$ and covariance matrix $\Sigma_0$, and $\Gamma(\alpha_0, \beta_0)$ represents the gamma distribution with shape $\alpha_0$ and rate $\beta_0$. 
+\noindent where $N_4(\mu_0, \Sigma_0)$ represents the 4-variate normal distribution with mean $\mu_0$ and covariance matrix $\Sigma_0$, and $N_1(m_0, s_0) represents the univariate normal distribution with mean $m_0$ and variance $s_0$. The prior distribution for the PK parameters represents our prior knowledge about the PK heterogeneity for a particular drug in a target population. Thus, the values of the prior hyperparameters should be carefully selected for the task at hand. In the current context, and by default, the hyperparameters are specified to correspond with estimates that arose from a study of piperacillin pharmacokinetics in a hospitalized, critically ill population. The particular values are listed in an appendix. 
 
-Due to the nonlinearity of the two-compartment model, the posterior distribution does not take a familiar form, and posterior summaries must be approximated. In particular, we sought to compute 95% credible bands for subject-specific concentration-time curves, and for summaries of the curve (e.g., the area under the curve, or the length of time in which the concentration exceeds a specified value). Monte Carlo techniques are often used to approximate these quantities. However, because these posterior summaries are presented in a web application in real time, we sought alternatives that were less computationally intensive and deterministic. We consider several methods as described in the following sections.
+Due to the nonlinearity of the two-compartment model, the posterior distribution does not take a familiar form, and posterior summaries must be approximated. In particular, we sought to compute 95% credible bands for subject-specific concentration-time curves, and for a specific summary of the curve: the length of time in which the concentration exceeds a specified value. Monte Carlo techniques are often used to approximate these quantities. However, because these posterior summaries are presented in a web application in real time, we sought alternatives that were less computationally intensive and deterministic. We consider several methods as described in the following sections.
 
 \subsubsection{Laplace approximation}
-We first considered a method that makes use of two approximations. The first is a Laplace approximation to the posterior density, and the second is a first order Taylor approximation of the target summary (i.e., the `delta method'). The Laplace approximation is given as follows
+We first considered a method that makes use of two approximations. The first is a Laplace approximation to the subject-specific posterior density, and the second is a first order Taylor approximation of the target summary (i.e., the `delta method'). The Laplace approximation is given as follows
 \begin{displaymath}
 \pi_i(\log \theta_i, \log \sigma) \approx N([\log \hat{\theta_i},\log \hat{\sigma}], [-H]^{-1})
 \end{displaymath} 
-\noindent where $[\log \hat{\theta_i},\log \hat{\sigma}]$ is the posterior mode and $H_{\hat{\theta_i}}$ is the posterior Hessian with respect to $[\log \theta_i, \log \sigma]$ evaluated at the posterior mode. The second approximation makes use of the delta method, such that a posterior functional $h(\log \theta_i)$ has an approximate normal distribution. The first-order Taylor expansion of $h(\log \theta_i)$ is 
+\noindent where $[\log \hat{\theta_i},\log \hat{\sigma}]$ is the posterior mode and $H_{\hat{\theta_i}}$ is the posterior Hessian with respect to $[\log \theta_i, \log \sigma]$ evaluated at the posterior mode. The second approximation makes use of the delta method, such that a posterior functional $h(\log \theta_i)$ has an approximate normal distribution. In the present context, $h(\log \theta_i)$ represents the logit of the fraction of the dosing period in which the concentration of drug exceeds a spedified value. The first-order Taylor expansion of $h(\log \theta_i)$ is 
 \begin{displaymath}
 h(\log \theta_i) \approx  h(\log \hat{\theta_i}) + G^T(\log \theta_i - \log \hat{\theta_i}),
 \end{displaymath}
@@ -78,8 +78,29 @@ h(\log \theta_i) \approx  h(\log \hat{\theta_i}) + G^T(\log \theta_i - \log \hat
 \begin{displaymath}
 h(\log \theta_i) \sim N(h(\log \hat{\theta_i}), G^T[-H]^{-1}G). 
 \end{displaymath}
-\noindent An approximate $(1-\alpha)\cdot 100$\% credible interval for $h(\theta_i)$ is thus computed in the usual manner. This method is computationally elegant, since the posterior Hessian and posterior mode can be computed simultaneously by most optimization software routines (e.g., the R function `optim'). Indeed, this method usually has the smallest computational burden (i.e., number of likelihood evaluations) among the three methods considered here.
+\noindent An approximate $(1-\alpha)\cdot 100$\% credible interval for $h(\log \theta_i)$ is thus given by the $\alpha/2$ and $(1-\alpha)/2$ quantiles of the approximate posterior distribution for $h(\log \theta)$. This method is computationally elegant, since the posterior Hessian and posterior mode can be computed simultaneously by most optimization software routines (e.g., the R function `optim'). Indeed, this method usually has the smallest computational burden (i.e., number of likelihood evaluations) among the three methods considered here.
 
 \subsubsection{Variational approximation}
 \subsubsection{Quadrature approximation}
+\subsection{Evaluation of approximation methods}
+\begin{itemize}
+\item used MCMC as gold-standard
+\item quantified posterior probability contained within approximate intervals for $\logit^{-1}(h(\log \theta_i))$
+\item use ``plasmode'' simulation to assess quality of method across variety of individuals (PK heterogeneity in this pop)
+\end{itemize}
+\section{Appendix: Prior hyperparameters for piperacillin among critically ill}
+\begin{center}
+\begin{table}
+\begin{tabular}{lll} \hline
+Parameter & Value \\ \hline
+$\mu_0$ & \\
+$\Sigma_0$ & \\
+$\alpha_0$ & \\
+$\beta_0$  & \\
+\hline
+\end{tabular}
+\caption{Prior hyperparameters for piperacilling in a population of hospitalized, critically ill patients.}\label{tab:hyp}
+\end{table}
+\end{center}
+
 \end{document}
