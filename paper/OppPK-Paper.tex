@@ -83,6 +83,21 @@ h(\log \theta_i) \sim N(h(\log \hat{\theta_i}), G^T[-H]^{-1}G).
 \subsubsection{Variational approximation}
 \subsubsection{Quadrature approximation}
 \subsection{Evaluation of approximation methods}
+
+
+The posterior coverage of the MIC statistic 95\% confidence interval was estimated as follows:
+ 
+50 samples were drawn from the prior distribution of PK parameters. For each set of prior parameters, 6 observations were simulated using the concentration predicted by the first 4 PK parameters and the standard error term corresponding to the 5th prior parameter. All observations were simulated during the final (5th) dosing period at 32, 32.5, 33, 34, 36, and 38 hours. 
+
+For each of the 50 sets of prior parameters and simulated data:
+ 	
+	1. A Laplace approximation to the posterior density was calculated and the delta method used to estimate the standard errors of the MIC statistic. A 95\% asymptotic normal confidence interval was used with the delta method standard errors to estimate upper and lower bounds.
+	
+	2. 3,000 samples from the posterior distribution of PK parameters were taken using a Metropolis MCMC algorithm with 2,000 warm-up iterations. The proportion of the 3,000 posterior samples falling within the upper and lower bounds was used to estimate the proportion of the posterior distribution of the MIC statistic falling within the confidence interval. 
+		
+On 50 samples we calculated a mean posterior coverage of 89.87\% with an IQR 88.10\% to 92.39\%. We calculate a Monte-Carlo standard error of approximately $\sqrt{(0.9)(0.1)/3000} = 0.005$. Confidence intervals for the MIC statstic were also considered on the logit and probit scales in order to restrict the bounds to the interval [0,1]; however, as these transformations resulted in slightly lower and more variable posterior coverage, the original scale was used. 
+		
+
 \begin{itemize}
 \item used MCMC as gold-standard
 \item quantified posterior probability contained within approximate intervals for $\logit^{-1}(h(\log \theta_i))$
