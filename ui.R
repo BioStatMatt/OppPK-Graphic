@@ -4,10 +4,13 @@ library('rhandsontable')
 
 ui <- dashboardPage(
   dashboardHeader(
+    titleWidth = 250,
     title = "Piperacillin TDM"
   ),
   dashboardSidebar(
-    tags$head(tags$style(".wrapper {overflow: visible !important;}")),
+    width = 250,
+    tags$head(tags$style(".wrapper {overflow: visible !important;}", 
+                         HTML(".sidebar { width: 240px; margin-left: 5px; }"))),
     hr(),
     p("This application is designed to provide individualized estimates of drug exposure for
       critically ill patients with sepsis that have received one or more doses of piperacillin."),
