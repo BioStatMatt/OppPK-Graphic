@@ -4,8 +4,8 @@ library('cubature') ## adaptIntegrate
 library('ellipse')  ## ellipse (only needed for example)
 source('model.R')
 
-## Here we assume that a one-compartment model is sufficient, and that 
-## prior distribution for the log of the v_1, k_10, k_12, and k_21 parameters have 
+## Here we assume that a one-compartment model is sufficient, and that
+## prior distribution for the log of the v_1, k_10, k_12, and k_21 parameters have
 ## a normal distribution with mean and covariance as follows. This is a
 ## weakly informative prior that has arisen from a prior study (in submission).
 lpk_mean_d <- c(lv_1=3.223, lk_10=-1.650, lk_12 = -7, lk_21 = -7)
@@ -19,9 +19,9 @@ ler_mean_d <- 2.33
 ler_sdev_d <- 0.32
 
 ## Vectof of all 5 parameters
-lpr_mean_d  <- c(lpk_mean_d, ler_mean_d) 
+lpr_mean_d  <- c(lpk_mean_d, ler_mean_d)
 
-## Given a series of concentration measurements for a particular patient, 
+## Given a series of concentration measurements for a particular patient,
 ## we can use the corresponding posterior distribution to summarize pharmacodynamic
 ## target attainment, and make predictions about how the patient will respond to
 ## dose/frequency changes. The function below evaluates the log posterior density
@@ -36,7 +36,7 @@ lpr_mean_d  <- c(lpk_mean_d, ler_mean_d)
 ## ler_sdev - prior standard deviation for error variance
 log_prior <- function(lpr, mu=lpk_mean_d, sig=lpk_vcov_d,
                       ler_mean=ler_mean_d, ler_sdev=ler_sdev_d)
-  dmvnorm(lpr[1:4], mu, sig, log = TRUE) + 
+  dmvnorm(lpr[1:4], mu, sig, log = TRUE) +
   dnorm(lpr[5], mean=ler_mean, sd=ler_sdev, log=TRUE)
 
 ## Log likelihood function
@@ -59,7 +59,7 @@ log_likelihood <- function(lpr, ivt, dat, ini=c(0,0)) {
 log_posterior <- function(lpr, ivt, dat) {
   dat <- na.omit(dat)
   if(nrow(dat) < 1) {
-    log_prior(lpr) 
+    log_prior(lpr)
   } else {
     log_prior(lpr) + log_likelihood(lpr, ivt, dat)
   }
@@ -67,11 +67,11 @@ log_posterior <- function(lpr, ivt, dat) {
 
 ## Function to compute finite-difference gradient (c.f., nlme::fdHess)
 fdGrad <- function (pars, fun, ...,
-                    .relStep = (.Machine$double.eps)^(1/2), 
+                    .relStep = (.Machine$double.eps)^(1/2),
                     minAbsPar = 0) {
   ##pars <- as.numeric(pars)
   npar <- length(pars)
-  incr <- ifelse(abs(pars) <= minAbsPar, .relStep, 
+  incr <- ifelse(abs(pars) <= minAbsPar, .relStep,
                  (abs(pars)-minAbsPar) * .relStep)
   ival <- do.call(fun, list(pars, ...))
   diff <- rep(0,npar)
@@ -86,39 +86,39 @@ fdGrad <- function (pars, fun, ...,
 mic_stat <- function(pk_pars, ivt, tms, con, th){
   #Values of the plotted posterior concentrations
   conc <- con[1,]
-  
+
   # Get PK solution equation evaluated at parameters
-  soln <- pk_solution(v_1=exp(pk_pars[1]), k_10=exp(pk_pars[2]), 
+  soln <- pk_solution(v_1=exp(pk_pars[1]), k_10=exp(pk_pars[2]),
                       k_12=exp(pk_pars[3]), k_21=exp(pk_pars[4]), ivt=ivt)
-  # Use PK solution to define function that computes 
+  # Use PK solution to define function that computes
   #   the concentrations centered by threshold
-  f_mic <- function(times = tms){ 
+  f_mic <- function(times = tms){
     val <- apply(soln(times)*1000, 2, function(x) pmax(0,x)) - th
-    return(val[1,]) 
+    return(val[1,])
   }
-  
+
   # Convert start/end dose times to numeric vectors
   ibe <- sapply(ivt, `[[`, 'begin')
   ied <- sapply(ivt, `[[`, 'end')
-  
+
   # Initialize time spent above 4*mic
   t_above <- 0
-  
+
   # Time between start of dose and end of dose
   for(i in 1:length(ibe)){
     # Concentration values at interval endpoints, centered by threshold
-    cb <- ifelse(i > 1, conc[tms == ibe[i]] - th, 0-64)
+    cb <- ifelse(i > 1, conc[tms == ibe[i]] - th, 0 - th)
     ce <- unique(conc[tms == ied[i]] - th) #Printing two copies for some reason? Inserted unique to fix for now
     if(cb < 0 && ce > 0){
       # Crosses to above threshold during interval
       root <- uniroot(f_mic, lower = ibe[i], upper = ied[i])$root #Must move from below to above
       t_above <- t_above + (ied[i] - root)
-    }else if(cb >= 0 && ce >= 0){ 
+    }else if(cb >= 0 && ce >= 0){
       # Above during whole interval
       t_above <- t_above + (ied[i] - ibe[i])
-    }  
+    }
   }
-  
+
   # Time between end of one dose and start of the next
   for(j in 1:length(ied)){
     ce <- unique(conc[tms == ied[j]] - th)
@@ -128,16 +128,16 @@ mic_stat <- function(pk_pars, ivt, tms, con, th){
       ulim <- ifelse(j < length(ied), ibe[j+1], max(tms))
       root <- uniroot(f_mic, lower = ied[j], upper = ulim)$root #Must move from above to below
       t_above <- t_above + (root - ied[j])
-    }else if(ce >= 0 && c_next >= 0){ 
+    }else if(ce >= 0 && c_next >= 0){
       # Above during whole interval
       t_add <- ifelse(j < length(ied), ibe[j+1] - ied[j], max(tms) - ied[j])
       t_above <- t_above + t_add
-    }  
+    }
   }
-  
+
   # Use time spent above 4*mic to compute proportion
   frac_time <- t_above/max(tms)
-  
+
   return(frac_time)
 }
 
@@ -150,78 +150,78 @@ mic_stat <- function(pk_pars, ivt, tms, con, th){
 ## alp - credible level (1-alp)%
 ## cod - additional time following last dose (h)
 plot_post_conc <- function(est, ivt, dat, alp=0.05, cod=12, thres=64) {
-  
+
   ## Compute plotting times
   ## - ensure peak and trough times
   ## - avoid time zero
   tms <- sapply(ivt, function(x) c(x$begin, x$end))
   tms <- c(tms, max(tms)+cod)
-  tms <- unlist(sapply(1:(length(tms)-1), function(i) { 
+  tms <- unlist(sapply(1:(length(tms)-1), function(i) {
     s1 <- seq(tms[i], tms[i+1], 1/10)
     if(tms[i+1] %% 1/10)
       s1 <- c(s1, tms[i+1])
     return(s1)
   }))
   tms <- pmax(1e-3, tms)
-  
+
   ## Approximate standard deviation of log concentration-time curve
   grd <- fdGrad(est$par, function(pars) {
-    sol <- pk_solution(v_1=exp(pars[1]), k_10=exp(pars[2]), 
-                       k_12=exp(pars[3]), k_21=exp(pars[4]), ivt=ivt) 
+    sol <- pk_solution(v_1=exp(pars[1]), k_10=exp(pars[2]),
+                       k_12=exp(pars[3]), k_21=exp(pars[4]), ivt=ivt)
     log(sol(tms)[1,]*1000) ## mulitply by 1000: g/l -> ug/ml
   })
   sde <- sqrt(diag(grd %*% solve(-est$hessian) %*% t(grd)))
   sde <- ifelse(is.nan(sde), 0, sde)
-  
+
   ## Plot posterior estiamte
   col_bg <- "#AAAAB5"
   col_fg <- "#3E465A"
   sol <- pk_solution(v_1=exp(est$par[1]), k_10=exp(est$par[2]),
-                     k_12=exp(est$par[3]), k_21=exp(est$par[4]), ivt=ivt) 
+                     k_12=exp(est$par[3]), k_21=exp(est$par[4]), ivt=ivt)
   con <- apply(sol(tms)*1000, 2, function(x) pmax(0,x))
   par(mfrow=c(1,1))
   plot(tms, con[1,], xlab="Time (h)", ylab="Concentration (ug/mL)",
        ylim=c(0, max(exp(log(con[1,])+qnorm(1-alp/2)*sde), na.rm=TRUE)),
        type='n', main="Concentration vs. Time")
-  
+
   ## Plot 95% credible bands
-  polygon(c(tms,rev(tms)), 
+  polygon(c(tms,rev(tms)),
           c(exp(log(con[1,]) + qnorm(1-alp/2)*sde),
             rev(exp(log(con[1,]) - qnorm(1-alp/2)*sde))),
           col=col_bg, border=NA)
-  
+
   ## Plot posterior estimate
   lines(tms, con[1,], lwd=2, col=col_fg)
-  
+
   ## Plot measured points
   points(dat$time_h, dat$conc_mg_dl, pch=16)
-  
+
   ## Create legend
   legend('topleft', c("Predicted", "95% Credible Band", "Measured"),
          lwd=c(2,4,NA), pch=c(NA,NA,16), col=c(col_fg,col_bg,'black'),
          border=NA, bty='n')
-  
-  
+
+
   ## Add MIC statistic information to plot
   # Obtain statistic
   frac_mic <- mic_stat(pk_pars = est$par, ivt, tms, con, th = thres)
-  
+
   # SE of logit(statistic)
   grd_mic <- fdGrad(est$par, function(pars) {
-    mic <- mic_stat(pk_pars = pars, ivt, tms, con, th = thres) 
+    mic <- mic_stat(pk_pars = pars, ivt, tms, con, th = thres)
     log(mic/(1-mic)) ## constrain between 0 and 1
   })
   sde_mic <- sqrt(diag(t(grd_mic) %*% solve(-est$hessian) %*% grd_mic))
-  
+
   # Get CI for logit transformed statistic then backtransform to original scale
   ci_logit_mic <- log(frac_mic/(1-frac_mic)) + c(-1,1)*qnorm(1-alp/2)*sde_mic
   ci_mic <- exp(ci_logit_mic)/(1 + exp(ci_logit_mic))
-  
+
   #Plotting elements for mic statistic
   abline(h = thres, lty = 2)
-  
+
   legend("topright", bty = 'n',
-         legend = c(paste("fT > threshold:", round(frac_mic, 3)), 
+         legend = c(paste("fT > threshold:", round(frac_mic, 3)),
                     paste("95% CI: (", round(ci_mic[1], 3), ",", round(ci_mic[2], 3), ")")))
 }
 
